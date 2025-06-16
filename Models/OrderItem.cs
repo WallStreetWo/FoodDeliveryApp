@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 namespace FoodDeliveryApp.Models
 {
     public class OrderItem
@@ -11,8 +12,10 @@ namespace FoodDeliveryApp.Models
         public decimal UnitPrice { get; set; }
 
         //Navigation Properties
+        [ForeignKey("OrderId")]
         public virtual Order Order { get; set; }
-        public virtual MenuItem MenuItem { get; set; }
 
+        [ForeignKey("MenuItemId")]
+        public virtual MenuItem MenuItem { get; set; }
     }
 }

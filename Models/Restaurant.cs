@@ -18,9 +18,13 @@ namespace FoodDeliveryApp.Models
         public string Email { get; set; }
         public string LogoUrl { get; set; }
         public string Description { get; set; }
+        //Operating Hours
+        public string OpeningHours { get; set; }
+        public string ClosingHours { get; set; }
+        public virtual ICollection<Order> Orders { get; set; }
 
         //Navgation Properties - A restaurant can have many menu items
-        public virtual ICollection <MenuItem> MenuItem { get; set; }
+        public virtual ICollection<MenuItem> MenuItem { get; set; }
 
 
     }
