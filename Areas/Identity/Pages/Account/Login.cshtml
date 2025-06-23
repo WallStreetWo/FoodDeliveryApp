@@ -1,0 +1,126 @@
+﻿@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<style>
+    /* We'll hide the default navbar and footer for a clean splash screen look */
+    header, footer {
+        display: none !important;
+    }
+
+    .field-icon {
+        float: right;
+        margin-left: -25px;
+        margin-top: -35px; /* Adjust this value to vertically align the icon */
+        position: relative;
+        z-index: 2;
+        cursor: pointer;
+    }
+
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f7f7f7;
+        overflow: hidden;
+        padding: 20px;
+    }
+
+    /* Container for the logo animation */
+    .logo-animation {
+        position: relative;
+        width: 300px; /* Adjust size as needed */
+        margin-bottom: 2rem;
+        text-align: center; /* Center the text below the graphic */
+    }
+
+    /* UPDATED: Animates only the graphic part */
+    .logo-graphic {
+        width: 100%;
+        opacity: 0;
+        animation: dashAcross 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    .login-form {
+        opacity: 0;
+        animation: fadeInForm 1s ease-in 1.8s forwards;
+        width: 100%;
+        max-width: 380px;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    
+
+    /* --- KEYFRAME ANIMATIONS (No changes here) --- */
+    @@keyframes dashAcross {
+        0% { opacity: 1; transform: translateX(-150%); }
+        100% { opacity: 1; transform: translateX(0); }
+    }
+    @@keyframes revealText {
+        0% { opacity: 0; transform: scale(0.8); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    @@keyframes fadeInForm {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="login-container">
+
+    <!-- UPDATED: Using two separate, transparent PNGs -->
+    <div class="logo-animation">
+        <img src="~/images/snackdash-logo-dark.png" alt="SnackDash Logo Animation" class="logo-graphic" />
+    </div>
+
+    <div class="login-form">
+        <section>
+            <form id="account" method="post">
+                <h2 class="text-center">Welcome Back!</h2>
+                <hr />
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                    <label asp-for="Input.Email" class="form-label"></label>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label asp-for="Input.Password" class="form-label"></label>
+                    <!--span toggle="#Input_Password" class="fa fa-fw fa-eye field-icon toggle-password"></span> -->
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="checkbox mb-3">
+                    <label asp-for="Input.RememberMe" class="form-label">
+                        <input class="form-check-input" asp-for="Input.RememberMe" />
+                        @Html.DisplayNameFor(m => m.Input.RememberMe)
+                    </label>
+                </div>
+                <div>
+                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
+                <div class="mt-3 text-center">
+                    <p>
+                        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
+                    </p>
+                    <p>
+                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a>
+                    </p>
+                </div>
+            </form>
+        </section>
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
