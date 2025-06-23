@@ -1,0 +1,25 @@
+# .gitignore for a .NET project
+
+## Build results
+[Bb]in/
+[Oo]bj/
+
+## Other
+*.vs
+.vs/
+*.user
+*.suo
+*.sln.docstates
+
+## Rider
+.idea/
+
+## User-specific files
+*.DS_Store
+Thumbs.db
+
+## Scaffolding
+ScaffoldingReadMe.txt
+
+## Environment variables
+.env
