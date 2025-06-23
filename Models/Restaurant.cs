@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FoodDeliveryApp.Models
 {
@@ -12,7 +13,6 @@ namespace FoodDeliveryApp.Models
 
         public string Address { get; set; }
         [Phone]
-
         public string PhoneNumber { get; set; }
         [EmailAddress]
         public string Email { get; set; }
@@ -24,7 +24,13 @@ namespace FoodDeliveryApp.Models
         public virtual ICollection<Order> Orders { get; set; }
 
         //Navgation Properties - A restaurant can have many menu items
-        public virtual ICollection<MenuItem> MenuItem { get; set; }
+        public virtual ICollection<MenuItem> MenuItems { get; set; }
+
+        [Display(Name = "Category")]
+        public int CategoryId { get; set; }
+
+        [ForeignKey("CategoryId")]
+        public virtual Category Category { get; set; }
 
 
     }
