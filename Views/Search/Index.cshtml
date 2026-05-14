@@ -1,0 +1,39 @@
+@model IEnumerable<Restaurant>
+@{
+    ViewData["Title"] = "Search Results";
+}
+
+<h1>Search Results</h1>
+<p>Showing results for: <strong>@ViewData["CurrentFilter"]</strong></p>
+<hr />
+
+@if (!Model.Any())
+{
+    <p>No restaurants found matching your search. Please try again.</p>
+}
+else
+{
+    <div class="restaurant-list">
+        @foreach (var restaurant in Model)
+        {
+            <a asp-controller="Restaurant" asp-action="Details" asp-route-id="@restaurant.RestaurantId" class="restaurant-card">
+                <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
+                <div class="card-body">
+                    <h5>@restaurant.Name</h5>
+                    <p>@restaurant.Description</p>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@* Re-using the same restaurant card styles from the homepage *@
+<style>
+    .restaurant-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .restaurant-card { text-decoration: none; color: inherit; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
+    .restaurant-card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .restaurant-card img { width: 100%; height: 160px; object-fit: cover; }
+    .card-body { padding: 1rem; }
+    .card-body h5 { font-weight: bold; margin-bottom: 0.25rem; }
+    .card-body p { color: #666; font-size: 0.9rem; }
+</style>

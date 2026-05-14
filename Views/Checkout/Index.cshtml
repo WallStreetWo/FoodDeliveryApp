@@ -1,0 +1,204 @@
+@model List<CartItemViewModel>
+@{
+    ViewData["Title"] = "Your Cart";
+}
+
+<style>
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .quantity-btn {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        line-height: 28px;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 50%;
+        background-color: #f7f7f7;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .remove-btn {
+        color: #dc3545;
+        cursor: pointer;
+    }
+</style>
+
+<h1>Your Shopping Cart</h1>
+<hr />
+
+<!-- We wrap the whole cart display in a container div -->
+<div id="cart-container">
+    @if (Model.Any())
+    {
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Item</th>
+                    <th style="width: 30%;"></th>
+                    <th style="width: 15%;">Price</th>
+                    <th style="width: 20%;">Quantity</th>
+                    <th style="width: 15%;">Total</th>
+                    <th style="width: 10%;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <img src="@item.ImageUrl" alt="@item.Name" style="width: 75px; height: 75px; object-fit: cover; border-radius: 8px;" />
+                        </td>
+                        <td>@item.Name</td>
+                        <td>R @item.UnitPrice.ToString("F2")</td>
+                        <td>
+                            <!-- Quantity Control Buttons -->
+                            <div class="quantity-controls">
+                                <span class="quantity-btn decrease-qty" data-item-id="@item.MenuItemId">-</span>
+                                <span class="fw-bold">@item.Quantity</span>
+                                <span class="quantity-btn increase-qty" data-item-id="@item.MenuItemId">+</span>
+                            </div>
+                        </td>
+                        <td><strong>R @item.Total.ToString("F2")</strong></td>
+                        <td>
+                            <!-- Remove Item Button -->
+                            <i class="fas fa-trash-alt remove-btn" data-item-id="@item.MenuItemId" title="Remove item"></i>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="text-end"><h5>Grand Total:</h5></td>
+                    <td><h5><strong>R @Model.Sum(item => item.Total).ToString("F2")</strong></h5></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="d-flex justify-content-between mt-4">
+            <!-- Clear Cart Button -->
+            <button id="clear-cart-btn" class="btn btn-outline-danger">Clear Cart</button>
+            <!-- Place Order Button -->
+            <a asp-controller="Order" asp-action="PlaceOrder" class="btn btn-primary btn-lg">Place Order</a>
+        </div>
+    }
+    else
+    {
+        <p>Your cart is empty. <a asp-controller="Home" asp-action="Index">Continue shopping</a>.</p>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Function to make API calls
+            async function postToApi(url) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (!response.ok) {
+                        throw new Error('API call failed');
+                    }
+                    // After a successful action, we refresh the page to see the changes.
+                    // A more advanced solution would use AJAX to redraw just the cart.
+                    location.reload(); 
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                }
+            }
+
+            // Increase quantity
+            document.querySelectorAll('.increase-qty').forEach(button => {
+                button.addEventListener('click', function() {
+                    const itemId = this.dataset.itemId;
+                    postToApi(`/api/Cart/AddToCart/${itemId}`);
+                });
+            });
+
+            // Decrease quantity
+            document.querySelectorAll('.decrease-qty').forEach(button => {
+                button.addEventListener('click', function() {
+                    const itemId = this.dataset.itemId;
+                    postToApi(`/api/Cart/RemoveFromCart/${itemId}`);
+                });
+            });
+
+            // Remove item completely
+            document.querySelectorAll('.remove-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to remove this item from your cart?')) {
+                        const itemId = this.dataset.itemId;
+                        postToApi(`/api/Cart/RemoveItemCompletely/${itemId}`);
+                    }
+                });
+            });
+
+            // Clear the entire cart
+            const clearCartBtn = document.getElementById('clear-cart-btn');
+            if (clearCartBtn) {
+                clearCartBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to empty your entire cart?')) {
+
+                        postToApi('/api/Cart/ClearCart');
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -5,131 +5,39 @@
 }
 
 <style>
-    /* General styles for the page */
-    .home-container {
-        font-family: Arial, sans-serif;
-    }
-
-    /* --- Header Section --- */
-    .main-header {
-        display: flex;
-        align-items: center;
-        padding: 1rem 0;
-        border-bottom: 1px solid #eee;
-    }
-    .logo {
-        font-size: 24px;
-        font-weight: bold;
-    }
-    .search-bar {
-        flex-grow: 1;
-        margin: 0 2rem;
-        position: relative;
-    }
-    .search-bar input {
-        width: 100%;
-        padding: 0.75rem;
-        padding-left: 2.5rem; /* Space for the icon */
-        border: 1px solid #e0e0e0;
-        border-radius: 50px;
-        background-color: #f5f5f5;
-    }
-    .search-bar .fa-search {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #555;
-    }
-
-    /* --- Category Icons Section --- */
-    .category-section {
-        padding: 1.5rem 0;
-        display: flex;
-        overflow-x: auto; /* Makes it scrollable horizontally */
-        gap: 2rem;
-        scrollbar-width: none; /* Hides scrollbar for Firefox */
-    }
-    .category-section::-webkit-scrollbar {
-        display: none; /* Hides scrollbar for Chrome, Safari */
-    }
-    .category-item {
-        text-align: center;
-        cursor: pointer;
-        flex-shrink: 0; /* Prevents items from shrinking */
-    }
-    .category-item img {
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
-        transition: transform 0.2s;
-    }
-    .category-item p {
-        margin-top: 0.5rem;
-        font-weight: 500;
-    }
-    .category-item:hover img {
-        transform: scale(1.1);
-    }
-
-    /* --- Restaurant List Section --- */
-    .restaurant-row {
-        margin-top: 2rem;
-    }
-    .row-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    .row-header h2 {
-        font-size: 22px;
-    }
-    .restaurant-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-    }
-    .restaurant-card {
-        text-decoration: none;
-        color: inherit;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .restaurant-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .restaurant-card img {
-        width: 100%;
-        height: 160px;
-        object-fit: cover;
-    }
-    .card-body {
-        padding: 1rem;
-    }
-    .card-body h5 {
-        font-weight: bold;
-        margin-bottom: 0.25rem;
-    }
-    .card-body p {
-        color: #666;
-        font-size: 0.9rem;
-    }
-
+    /* All of your existing CSS is perfect, no changes needed here. */
+    .home-container { font-family: Arial, sans-serif; }
+    .main-header { display: flex; align-items: center; padding: 1rem 0; border-bottom: 1px solid #eee; }
+    .logo { font-size: 24px; font-weight: bold; }
+    .search-bar { flex-grow: 1; margin: 0 2rem; position: relative; }
+    .search-bar input { width: 100%; padding: 0.75rem; padding-left: 2.5rem; border: 1px solid #e0e0e0; border-radius: 50px; background-color: #f5f5f5; }
+    .search-bar .fa-search { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #555; }
+    .category-section { padding: 1.5rem 0; display: flex; overflow-x: auto; gap: 2rem; scrollbar-width: none; }
+    .category-section::-webkit-scrollbar { display: none; }
+    .category-item { text-align: center; cursor: pointer; flex-shrink: 0; }
+    .category-item img { width: 60px; height: 60px; object-fit: contain; transition: transform 0.2s; }
+    .category-item p { margin-top: 0.5rem; font-weight: 500; }
+    .category-item:hover img { transform: scale(1.1); }
+    .restaurant-row { margin-top: 2rem; }
+    .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .row-header h2 { font-size: 22px; }
+    .restaurant-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .restaurant-card { text-decoration: none; color: inherit; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
+    .restaurant-card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .restaurant-card img { width: 100%; height: 160px; object-fit: cover; }
+    .card-body { padding: 1rem; }
+    .card-body h5 { font-weight: bold; margin-bottom: 0.25rem; }
+    .card-body p { color: #666; font-size: 0.9rem; }
 </style>
 
 <div class="home-container">
     <!-- Header with Logo and Search Bar -->
     <div class="main-header">
         <div class="logo">Snack Dash</div>
-        <div class="search-bar">
+        <form asp-controller="Search" asp-action="Index" method="get" class="search-bar">
             <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search Snack Dash" />
-        </div>
-        <!-- We can add a cart icon here later -->
+            <input type="text" placeholder="Search restaurants or dishes" name="searchString" value="@ViewData["CurrentFilter"]" />
+        </form>
     </div>
 
     <!-- Category Icons -->
@@ -152,7 +60,8 @@
         <div class="restaurant-list">
             @foreach (var restaurant in Model.FeaturedRestaurants)
             {
-                <a href="#" class="restaurant-card">
+                <!-- UPDATED LINK HERE -->
+                <a asp-controller="Restaurant" asp-action="Details" asp-route-id="@restaurant.RestaurantId" class="restaurant-card">
                     <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
                     <div class="card-body">
                         <h5>@restaurant.Name</h5>
@@ -172,7 +81,8 @@
         <div class="restaurant-list">
             @foreach (var restaurant in Model.TopRatedRestaurants)
             {
-                <a href="#" class="restaurant-card">
+                <!-- UPDATED LINK HERE -->
+                <a asp-controller="Restaurant" asp-action="Details" asp-route-id="@restaurant.RestaurantId" class="restaurant-card">
                     <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
                     <div class="card-body">
                         <h5>@restaurant.Name</h5>
@@ -182,7 +92,6 @@
             }
         </div>
     </div>
-
 </div>
 
 @* Add Font Awesome for icons *@

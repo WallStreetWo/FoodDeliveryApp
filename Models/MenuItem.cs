@@ -14,6 +14,9 @@ namespace FoodDeliveryApp.Models
         public string ImageUrl { get; set; }
         [ForeignKey("RestaurantId")]
         public int RestaurantId { get; set; }
+        public int MenuCategoryId { get; set; }
+        [ForeignKey("MenuCategoryId")]
+        public virtual MenuCategory MenuCategory { get; set; }
         
         // This property DEFINITELY exists.
         public virtual Restaurant Restaurant { get; set; }

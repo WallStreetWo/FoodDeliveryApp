@@ -23,6 +23,7 @@ namespace FoodDeliveryApp.Data
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Restaurant> Restaurants { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<MenuCategory> MenuCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,17 +36,24 @@ namespace FoodDeliveryApp.Data
             modelBuilder.Entity<MenuItem>()
                .Property(mi => mi.Price)
                .HasColumnType("decimal(18, 2)");
-    
+
             modelBuilder.Entity<Order>()
                .Property(o => o.TotalAmount)
                .HasColumnType("decimal(18, 2)");
-              
+
             // This code uses '.Restaurant' and is correct.
             modelBuilder.Entity<MenuItem>()
-                .HasOne(mi => mi.Restaurant) 
+                .HasOne(mi => mi.Restaurant)
                 .WithMany(r => r.MenuItems)
                 .HasForeignKey(mi => mi.RestaurantId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MenuItem>()
+                .HasOne(mi => mi.MenuCategory)
+                .WithMany(mc => mc.MenuItems)
+                .HasForeignKey(mi => mi.MenuCategoryId)
+                .OnDelete(DeleteBehavior.NoAction);
+
 
             // Other relationships...
             modelBuilder.Entity<OrderItem>().HasOne(oi => oi.Order).WithMany(o => o.OrderItems).HasForeignKey(oi => oi.OrderId);

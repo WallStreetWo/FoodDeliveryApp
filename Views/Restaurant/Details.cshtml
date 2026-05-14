@@ -1,0 +1,476 @@
+@model Restaurant
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<style>
+    /* --- Main Page Layout --- */
+    .restaurant-details-page {
+        margin-top: 2rem;
+        font-family: Arial, sans-serif;
+    }
+
+    .banner-image {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .restaurant-header {
+        margin-top: 1.5rem;
+    }
+
+    .restaurant-header h1 {
+        font-weight: bold;
+    }
+
+    .restaurant-header p {
+        color: #555;
+        font-size: 1rem;
+    }
+
+    .menu-container {
+        display: flex;
+        margin-top: 2rem;
+        gap: 2rem;
+    }
+
+    /* Left Sidebar for Menu Categories */
+    .menu-sidebar {
+        width: 250px;
+        flex-shrink: 0;
+        position: sticky; /* Makes it stick when you scroll */
+        top: 20px;
+        align-self: flex-start;
+    }
+
+    .menu-sidebar ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .menu-sidebar a {
+        display: block;
+        padding: 0.75rem 1rem;
+        text-decoration: none;
+        color: #333;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+
+    .menu-sidebar a:hover, .menu-sidebar a.active {
+        background-color: #f0f0f0;
+    }
+
+    /* Main Content Area for Menu Items */
+    .menu-content {
+        flex-grow: 1;
+    }
+
+    .menu-category-section {
+        margin-bottom: 3rem;
+    }
+
+    .menu-category-section h2 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        scroll-margin-top: 20px; 
+    }
+
+    .menu-item-list {
+        display: grid;
+        grid-template-columns: 1fr; /* Each card takes the full width */
+        gap: 1.5rem;
+    }
+
+    .menu-item-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        text-decoration: none;
+        color: inherit;
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: box-shadow 0.2s;
+    }
+
+    .menu-item-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .item-details {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .item-details h5 {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-details .price {
+        font-weight: bold;
+        color: #000;
+        margin-top: 0.5rem;
+    }
+
+    .item-details .description {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 1rem;
+    }
+
+    .item-image {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+        margin-left: 1.5rem;
+    }
+
+    .item-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .add-to-cart-btn {
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        font-size: 28px;
+        font-weight: 300;
+        line-height: 32px;
+        text-align: center;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.1s;
+    }
+
+    .add-to-cart-btn:hover {
+        transform: scale(1.1);
+    }
+
+    /* --- Styles for the Modal --- */
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        transform: scale(0.9);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: scale(1);
+    }
+    
+    .modal-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        padding: 1rem 1.5rem;
+        z-index: 10;
+    }
+
+    .modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        display: flex;
+        padding: 1.5rem;
+        gap: 2rem;
+    }
+
+    .modal-item-image {
+        flex: 1;
+    }
+
+    .modal-item-image img {
+        width: 100%;
+        border-radius: 8px;
+    }
+
+    .modal-item-details {
+        flex: 1;
+    }
+
+    .modal-item-details h2 {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 0 0 0.5rem;
+    }
+
+    .modal-item-details .price {
+        font-size: 18px;
+        margin-bottom: 1rem;
+    }
+
+    .modal-item-details .description {
+        font-size: 1rem;
+        color: #555;
+        margin-bottom: 2rem;
+    }
+
+    .modal-footer {
+        padding: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+
+    .add-to-order-btn {
+        width: 100%;
+        padding: 1rem;
+        background: black;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+</style>
+
+<div class="restaurant-details-page">
+    <!-- Banner Image -->
+    <img src="@Model.LogoUrl" alt="@Model.Name Banner" class="banner-image" />
+
+    <!-- Restaurant Header -->
+    <div class="restaurant-header">
+        <h1>@Model.Name</h1>
+        <p>@Model.Category?.Name · @Model.Address</p>
+    </div>
+
+    <hr />
+
+    <div class="menu-container">
+        <!-- Left Sidebar Navigation -->
+        <aside class="menu-sidebar">
+            <ul>
+                @foreach (var menuCategory in Model.MenuCategories.OrderBy(mc => mc.MenuCategoryId))
+                {
+                    <li>
+                        <a href="#category-@menuCategory.MenuCategoryId">@menuCategory.Name</a>
+                    </li>
+                }
+            </ul>
+        </aside>
+
+        <!-- Main Menu Content -->
+        <main class="menu-content">
+            @foreach (var menuCategory in Model.MenuCategories.OrderBy(mc => mc.MenuCategoryId))
+            {
+                <section class="menu-category-section">
+                    <h2 id="category-@menuCategory.MenuCategoryId">@menuCategory.Name</h2>
+                    <div class="menu-item-list">
+                        @foreach (var item in menuCategory.MenuItems)
+                        {
+                            <!-- This card now has data-* attributes for the JavaScript -->
+                            <div class="menu-item-card"
+                                 data-item-id="@item.MenuItemId"
+                                 data-item-name="@item.Name"
+                                 data-item-price="@item.Price.ToString("F2")"
+                                 data-item-description="@item.Description"
+                                 data-item-image="@item.ImageUrl">
+                                 
+                                <div class="item-details">
+                                    <h5>@item.Name</h5>
+                                    <p class="description">@item.Description</p>
+                                    <p class="price">R @item.Price.ToString("F2")</p>
+                                </div>
+                                <div class="item-image">
+                                    <img src="@item.ImageUrl" alt="@item.Name" />
+                                    <!-- The '+' button on the card itself doesn't need to do anything for now -->
+                                    <button class="add-to-cart-btn" onclick="event.stopPropagation(); alert('Added @item.Name to cart!');">+</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        </main>
+    </div>
+</div>
+
+<!-- ============================================= -->
+<!-- MODAL HTML (This part is hidden by default)   -->
+<!-- ============================================= -->
+<div id="item-details-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button id="modal-close" class="modal-close-btn">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-item-image">
+                <img id="modal-img" src="" alt="Menu Item Image" />
+            </div>
+            <div class="modal-item-details">
+                <h2 id="modal-name">Item Name</h2>
+                <p id="modal-price" class="price">R 0.00</p>
+                <p id="modal-description" class="description">Item description goes here.</p>
+                <!-- A quantity selector can be added here later -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="modal-add-to-order" class="add-to-order-btn">Add 1 to order - R 0.00</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Get references to all the modal elements ---
+            const modal = document.getElementById('item-details-modal');
+            const closeButton = document.getElementById('modal-close');
+            const modalName = document.getElementById('modal-name');
+            const modalPrice = document.getElementById('modal-price');
+            const modalDescription = document.getElementById('modal-description');
+            const modalImage = document.getElementById('modal-img');
+            const modalAddToCartBtn = document.getElementById('modal-add-to-order');
+
+            // --- Get all the clickable menu item cards ---
+            const itemCards = document.querySelectorAll('.menu-item-card');
+            
+            // =======================================================
+            // A. CORE "ADD TO CART" FUNCTION
+            // This function calls our API. We will use it for both the
+            // quick-add button and the modal button.
+            // =======================================================
+            function addToCart(menuItemId, itemName) {
+                fetch(`/api/Cart/AddToCart/${menuItemId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data.message); // Log success message from API
+                    alert(`Added ${itemName} to your cart!`);
+                    // We will update the cart summary UI here later
+                })
+                .catch(error => {
+                    console.error('There was a problem adding the item to the cart:', error);
+                    alert('Could not add item to cart.');
+                });
+            }
+
+            // =======================================================
+            // B. MODAL LOGIC
+            // =======================================================
+            function openModal(card) {
+                const menuItemId = card.dataset.itemId;
+                const name = card.dataset.itemName;
+                const price = parseFloat(card.dataset.itemPrice).toFixed(2);
+                const description = card.dataset.itemDescription;
+                const image = card.dataset.itemImage;
+
+                // Populate the modal with data
+                modalName.textContent = name;
+                modalPrice.textContent = `R ${price}`;
+                modalDescription.textContent = description;
+                modalImage.src = image;
+                modalAddToCartBtn.textContent = `Add 1 to order - R ${price}`;
+
+                // VERY IMPORTANT: Store the item's ID on the modal button itself
+                modalAddToCartBtn.dataset.menuItemId = menuItemId;
+                modalAddToCartBtn.dataset.itemName = name; // Store name for the alert
+
+                modal.classList.add('active');
+            }
+
+            function closeModal() {
+                modal.classList.remove('active');
+            }
+
+            // =======================================================
+            // C. EVENT LISTENERS
+            // =======================================================
+
+            // 1. Listen for clicks on the item cards to open the modal
+            itemCards.forEach(card => {
+                card.addEventListener('click', function (e) {
+                    // Stop if the click was on the quick-add button
+                    if (e.target.classList.contains('add-to-cart-btn')) {
+                        return;
+                    }
+                    openModal(this); // 'this' refers to the card that was clicked
+                });
+            });
+
+            // 2. Listen for clicks on the "quick-add" (+) buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.stopPropagation(); // Prevents the modal from opening
+                    const card = this.closest('.menu-item-card');
+                    const menuItemId = card.dataset.itemId;
+                    const itemName = card.dataset.itemName;
+                    addToCart(menuItemId, itemName);
+                });
+            });
+
+            // 3. Listen for clicks on the MAIN "Add to order" button inside the modal
+            modalAddToCartBtn.addEventListener('click', function() {
+                const menuItemId = this.dataset.menuItemId;
+                const itemName = this.dataset.itemName;
+                addToCart(menuItemId, itemName);
+                closeModal(); // Close the modal after adding the item
+            });
+
+            // 4. Listeners for closing the modal
+            closeButton.addEventListener('click', closeModal);
+            modal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+}

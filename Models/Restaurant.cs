@@ -25,6 +25,8 @@ namespace FoodDeliveryApp.Models
 
         //Navgation Properties - A restaurant can have many menu items
         public virtual ICollection<MenuItem> MenuItems { get; set; }
+        // ADD THIS NAVIGATION PROPERTY
+        public virtual ICollection<MenuCategory> MenuCategories { get; set; }
 
         [Display(Name = "Category")]
         public int CategoryId { get; set; }

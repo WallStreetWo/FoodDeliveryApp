@@ -5,6 +5,23 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Adding services for session state. The shopping cart depends on this.
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    // The session cookie will be valid for 20 minutes of inactivity.
+    options.IdleTimeout = TimeSpan.FromMinutes(20);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// Register HttpContextAccessor. This allows our service to access the session.
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+// Register our new ShoppingCartService.
+// 'AddScoped' means a new instance of the service is created for each web request.
+builder.Services.AddScoped<FoodDeliveryApp.Services.ShoppingCartService>();
+
 // Configure EF Core with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -70,6 +87,7 @@ if (app.Environment.IsDevelopment())
 
 // Middleware pipeline
 //app.UseHttpsRedirection();
+app.UseSession();
 app.UseStaticFiles(); // Required for serving Identity UI and CSS
 app.UseRouting();
 
