@@ -1,0 +1,197 @@
+@model FoodDeliveryApp.Models.Order
+
+@{
+    ViewData["Title"] = $"Delivery Order #{Model.OrderId}";
+    var statuses = ViewBag.DriverAllowedStatuses as string[] ?? Array.Empty<string>();
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="mb-2">Delivery Order #@Model.OrderId</h1>
+            <p class="text-muted mb-0">Update the delivery progress for this order.</p>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-controller="OrderTracking" asp-action="Track" asp-route-id="@Model.OrderId" class="btn btn-primary">
+                Track View
+            </a>
+
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                Back to My Deliveries
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["DriverOrderSuccess"] != null)
+    {
+        <div class="alert alert-success">@TempData["DriverOrderSuccess"]</div>
+    }
+
+    @if (TempData["DriverOrderError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["DriverOrderError"]</div>
+    }
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">Delivery Details</h5>
+
+                    <div class="mb-2">
+                        <strong>Restaurant:</strong>
+                        @(Model.Restaurant?.Name ?? "Unknown Restaurant")
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Customer:</strong>
+                        @(Model.User?.FullName ?? Model.User?.Email ?? "Customer")
+                    </div>
+
+                   <div class="mb-2">
+                        <strong>Delivery Address:</strong>
+                        @(Model.DeliveryAddress ?? Model.User?.Address ?? "No address captured")
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.CustomerPhoneNumber))
+                    {
+                        <div class="mb-2">
+                            <strong>Phone:</strong>
+                            @Model.CustomerPhoneNumber
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.DeliveryInstructions))
+                    {
+                        <div class="mb-2">
+                            <strong>Instructions:</strong>
+                            @Model.DeliveryInstructions
+                        </div>
+                    }
+
+                    @if (Model.DeliveryLatitude.HasValue && Model.DeliveryLongitude.HasValue)
+                    {
+                        <div class="mb-2">
+                            <strong>Coordinates:</strong>
+                            @Model.DeliveryLatitude, @Model.DeliveryLongitude
+                        </div>
+                    }
+
+                    <div class="mb-2">
+                        <strong>Status:</strong>
+                        @Model.Status
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Placed:</strong>
+                        @Model.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Total:</strong>
+                        R @Model.TotalAmount.ToString("F2")
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <form asp-action="UpdateStatus" method="post" class="d-flex gap-2 flex-wrap">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" name="id" value="@Model.OrderId" />
+
+                        <select name="status" class="form-select" style="max-width: 260px;">
+                            <option value="">-- Select next status --</option>
+
+                            @foreach (var s in statuses)
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+
+                        <button type="submit" class="btn btn-dark">
+                            Update Delivery Status
+                        </button>
+                    </form>
+
+                    <div class="text-muted small mt-3">
+                        Drivers can only move orders forward to Picked up, On the way, or Delivered.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">Order Items</h5>
+
+                    @if (Model.OrderItems != null && Model.OrderItems.Any())
+                    {
+                        foreach (var item in Model.OrderItems)
+                        {
+                            <div class="d-flex justify-content-between gap-3 border-bottom py-2">
+                                <div>
+                                    <div class="fw-semibold">@(item.MenuItem?.Name ?? "Unknown Item")</div>
+                                    <div class="text-muted small">Qty: @item.Quantity</div>
+                                </div>
+
+                                <div class="fw-semibold">
+                                    R @item.Total.ToString("F2")
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted">No items found.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <h5 class="mb-3">Status History</h5>
+
+            @if (Model.StatusHistory == null || !Model.StatusHistory.Any())
+            {
+                <div class="alert alert-info mb-0">
+                    No status history has been recorded for this order yet.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Changed By</th>
+                                <th>Changed At</th>
+                                <th>Comment</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var history in Model.StatusHistory)
+                            {
+                                <tr>
+                                    <td>@history.Status</td>
+                                    <td>
+                                        @(history.ChangedByUser?.FullName
+                                            ?? history.ChangedByUser?.Email
+                                            ?? "System")
+                                    </td>
+                                    <td>@history.ChangedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                                    <td>@(history.Comment ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

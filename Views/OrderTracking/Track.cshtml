@@ -1,0 +1,481 @@
+@using System.Globalization
+@using FoodDeliveryApp.Constants
+@model FoodDeliveryApp.Models.Order
+
+@{
+    ViewData["Title"] = $"Track Order #{Model.OrderId}";
+
+    var trackingFlow = OrderStatuses.TrackingFlow;
+    var currentIndex = Array.IndexOf(trackingFlow, Model.Status);
+    var isCancelled = Model.Status == OrderStatuses.Cancelled;
+
+    var deliveryLat = Model.DeliveryLatitude.HasValue
+        ? Model.DeliveryLatitude.Value.ToString(CultureInfo.InvariantCulture)
+        : "null";
+
+    var deliveryLng = Model.DeliveryLongitude.HasValue
+        ? Model.DeliveryLongitude.Value.ToString(CultureInfo.InvariantCulture)
+        : "null";
+
+    var restaurantLat = Model.Restaurant != null && Model.Restaurant.Latitude.HasValue
+        ? Model.Restaurant.Latitude.Value.ToString(CultureInfo.InvariantCulture)
+        : "null";
+
+    var restaurantLng = Model.Restaurant != null && Model.Restaurant.Longitude.HasValue
+        ? Model.Restaurant.Longitude.Value.ToString(CultureInfo.InvariantCulture)
+        : "null";
+}
+
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="" />
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="mb-2">Track Order #@Model.OrderId</h1>
+            <p class="text-muted mb-0">
+                Follow the progress of your SnackDash order.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-controller="Order" asp-action="Details" asp-route-id="@Model.OrderId" class="btn btn-outline-secondary">
+                Order Details
+            </a>
+
+            <a asp-controller="Order" asp-action="Index" class="btn btn-primary">
+                My Orders
+            </a>
+        </div>
+    </div>
+
+    @if (isCancelled)
+    {
+        <div class="alert alert-danger rounded-4">
+            This order has been cancelled.
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h4 class="mb-4">Delivery Progress</h4>
+
+                    <div class="tracking-timeline">
+                        @for (var i = 0; i < trackingFlow.Length; i++)
+                        {
+                            var status = trackingFlow[i];
+                            var isDone = !isCancelled && currentIndex >= i;
+                            var isCurrent = !isCancelled && Model.Status == status;
+
+                            var historyItem = Model.StatusHistory
+                                .OrderByDescending(h => h.ChangedAt)
+                                .FirstOrDefault(h => h.Status == status);
+
+                            <div class="tracking-step @(isDone ? "done" : "") @(isCurrent ? "current" : "")">
+                                <div class="tracking-dot">
+                                    @if (isDone)
+                                    {
+                                        <span>✓</span>
+                                    }
+                                </div>
+
+                                <div class="tracking-content">
+                                    <div class="fw-bold">@status</div>
+
+                                    @if (historyItem != null)
+                                    {
+                                        <div class="text-muted small">
+                                            @historyItem.ChangedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(historyItem.Comment))
+                                        {
+                                            <div class="small mt-1">@historyItem.Comment</div>
+                                        }
+                                    }
+                                    else if (isCurrent)
+                                    {
+                                        <div class="text-muted small">Current status</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted small">Waiting</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                        <div>
+                            <h4 class="mb-1">Delivery Map</h4>
+                            <p class="text-muted mb-0">
+                                View the restaurant and delivery location for this order.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="tracking-map-message" class="alert alert-info d-none"></div>
+
+                    <div id="tracking-map" class="tracking-map rounded-4"></div>
+
+                    <div id="tracking-distance" class="text-muted small mt-3"></div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="mb-3">Status History</h4>
+
+                    @if (Model.StatusHistory == null || !Model.StatusHistory.Any())
+                    {
+                        <div class="alert alert-info mb-0">
+                            No tracking history has been recorded for this order yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Changed By</th>
+                                        <th>Changed At</th>
+                                        <th>Comment</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var history in Model.StatusHistory)
+                                    {
+                                        <tr>
+                                            <td>@history.Status</td>
+                                            <td>
+                                                @(history.ChangedByUser?.FullName
+                                                    ?? history.ChangedByUser?.Email
+                                                    ?? "System")
+                                            </td>
+                                            <td>@history.ChangedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                                            <td>@(history.Comment ?? "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h4 class="mb-3">Order Summary</h4>
+
+                    <div class="mb-2">
+                        <strong>Restaurant:</strong>
+                        @(Model.Restaurant?.Name ?? "Unknown Restaurant")
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Status:</strong>
+                        @Model.Status
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Placed:</strong>
+                        @Model.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Total:</strong>
+                        R @Model.TotalAmount.ToString("F2")
+                    </div>
+
+                    @if (Model.Driver != null)
+                    {
+                        <div class="mb-2">
+                            <strong>Driver:</strong>
+                            @(Model.Driver.FullName ?? Model.Driver.Email)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-2">
+                            <strong>Driver:</strong>
+                            Not assigned yet
+                        </div>
+                    }
+
+                    <hr />
+
+                    <h5 class="mb-3">Delivery</h5>
+
+                    <div class="mb-2">
+                        <strong>Delivery Address:</strong>
+                        @(Model.DeliveryAddress ?? "No delivery address captured")
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.CustomerPhoneNumber))
+                    {
+                        <div class="mb-2">
+                            <strong>Phone:</strong>
+                            @Model.CustomerPhoneNumber
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.DeliveryInstructions))
+                    {
+                        <div class="mb-2">
+                            <strong>Instructions:</strong>
+                            @Model.DeliveryInstructions
+                        </div>
+                    }
+
+                    @if (Model.DeliveryLatitude.HasValue && Model.DeliveryLongitude.HasValue)
+                    {
+                        <div class="mb-2">
+                            <strong>Delivery Coordinates:</strong>
+                            @Model.DeliveryLatitude, @Model.DeliveryLongitude
+                        </div>
+                    }
+
+                    @if (Model.Restaurant?.Latitude != null && Model.Restaurant?.Longitude != null)
+                    {
+                        <div class="mb-2">
+                            <strong>Restaurant Coordinates:</strong>
+                            @Model.Restaurant.Latitude, @Model.Restaurant.Longitude
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h4 class="mb-3">Items</h4>
+
+                    @if (Model.OrderItems != null && Model.OrderItems.Any())
+                    {
+                        foreach (var item in Model.OrderItems)
+                        {
+                            <div class="d-flex justify-content-between gap-3 border-bottom py-2">
+                                <div>
+                                    <div class="fw-semibold">@(item.MenuItem?.Name ?? "Unknown Item")</div>
+                                    <div class="text-muted small">Qty: @item.Quantity</div>
+                                </div>
+                                <div class="fw-semibold">
+                                    R @item.Total.ToString("F2")
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted">No items found.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tracking-timeline {
+        position: relative;
+    }
+
+    .tracking-step {
+        display: flex;
+        gap: 16px;
+        position: relative;
+        padding-bottom: 28px;
+    }
+
+    .tracking-step:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        left: 14px;
+        top: 32px;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+
+    .tracking-dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #dee2e6;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 1;
+        flex-shrink: 0;
+    }
+
+    .tracking-step.done .tracking-dot {
+        background: #198754;
+        border-color: #198754;
+        color: white;
+    }
+
+    .tracking-step.current .tracking-content {
+        border-left: 4px solid #0d6efd;
+        padding-left: 12px;
+    }
+
+    .tracking-content {
+        padding-bottom: 4px;
+    }
+
+    .tracking-map {
+        width: 100%;
+        height: 420px;
+        border: 1px solid #dee2e6;
+        overflow: hidden;
+    }
+</style>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const deliveryLat = @deliveryLat;
+        const deliveryLng = @deliveryLng;
+        const restaurantLat = @restaurantLat;
+        const restaurantLng = @restaurantLng;
+
+        const mapElement = document.getElementById("tracking-map");
+        const mapMessage = document.getElementById("tracking-map-message");
+        const distanceElement = document.getElementById("tracking-distance");
+
+        const hasDeliveryLocation =
+            typeof deliveryLat === "number" &&
+            typeof deliveryLng === "number";
+
+        const hasRestaurantLocation =
+            typeof restaurantLat === "number" &&
+            typeof restaurantLng === "number";
+
+        if (typeof L === "undefined") {
+            mapElement.style.display = "none";
+            mapMessage.classList.remove("d-none");
+            mapMessage.textContent = "The map library could not load. Please check your internet connection and try again.";
+            return;
+        }
+
+        if (!hasDeliveryLocation && !hasRestaurantLocation) {
+            mapElement.style.display = "none";
+            mapMessage.classList.remove("d-none");
+            mapMessage.textContent = "No map coordinates are available for this order yet.";
+            return;
+        }
+
+        let startLat = hasDeliveryLocation ? deliveryLat : restaurantLat;
+        let startLng = hasDeliveryLocation ? deliveryLng : restaurantLng;
+
+        const map = L.map("tracking-map").setView([startLat, startLng], 13);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(map);
+
+        const bounds = [];
+
+        if (hasRestaurantLocation) {
+            const restaurantMarker = L.marker([restaurantLat, restaurantLng])
+                .addTo(map)
+                .bindPopup("<strong>Restaurant</strong><br />@((Model.Restaurant?.Name ?? "Unknown Restaurant").Replace("\"", "\\\""))");
+
+            bounds.push([restaurantLat, restaurantLng]);
+        }
+
+        if (hasDeliveryLocation) {
+            const deliveryPopup = `
+                <strong>Delivery Location</strong><br />
+                @((Model.DeliveryAddress ?? "Customer delivery location").Replace("`", "\\`"))
+            `;
+
+            const deliveryMarker = L.marker([deliveryLat, deliveryLng])
+                .addTo(map)
+                .bindPopup(deliveryPopup);
+
+            bounds.push([deliveryLat, deliveryLng]);
+        }
+
+        if (bounds.length > 1) {
+            map.fitBounds(bounds, {
+                padding: [40, 40]
+            });
+        }
+
+        if (hasRestaurantLocation && hasDeliveryLocation) {
+            const distanceKm = calculateDistanceKm(
+                restaurantLat,
+                restaurantLng,
+                deliveryLat,
+                deliveryLng
+            );
+
+            L.polyline(
+                [
+                    [restaurantLat, restaurantLng],
+                    [deliveryLat, deliveryLng]
+                ],
+                {
+                    weight: 4,
+                    opacity: 0.7
+                }
+            ).addTo(map);
+
+            distanceElement.textContent =
+                `Approximate straight-line distance: ${distanceKm.toFixed(2)} km. Actual driving distance may be different.`;
+        } else if (!hasRestaurantLocation) {
+            distanceElement.textContent =
+                "Restaurant coordinates are not set yet, so only the delivery location is shown.";
+        } else if (!hasDeliveryLocation) {
+            distanceElement.textContent =
+                "Delivery coordinates are not available, so only the restaurant location is shown.";
+        }
+
+        setTimeout(function () {
+            map.invalidateSize();
+        }, 250);
+
+        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+            const earthRadiusKm = 6371;
+
+            const dLat = toRadians(lat2 - lat1);
+            const dLon = toRadians(lon2 - lon1);
+
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRadians(lat1)) *
+                Math.cos(toRadians(lat2)) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return earthRadiusKm * c;
+        }
+
+        function toRadians(degrees) {
+            return degrees * Math.PI / 180;
+        }
+    });
+</script>

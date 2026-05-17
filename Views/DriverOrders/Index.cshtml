@@ -1,0 +1,76 @@
+@model List<FoodDeliveryApp.Models.Order>
+
+@{
+    ViewData["Title"] = "My Deliveries";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="mb-2">My Deliveries</h1>
+            <p class="text-muted mb-0">Orders assigned to you for delivery.</p>
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info rounded-4">
+            You do not have any assigned deliveries yet.
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var order in Model)
+            {
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                                <div>
+                                    <h5 class="mb-2">Order #@order.OrderId</h5>
+
+                                    <div class="text-muted">
+                                        Restaurant: @(order.Restaurant?.Name ?? "Unknown Restaurant")
+                                    </div>
+
+                                    <div class="text-muted">
+                                        Customer: @(order.User?.FullName ?? order.User?.Email ?? "Customer")
+                                    </div>
+
+                                    <div class="text-muted">
+                                        Placed: @order.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <div><strong>Status:</strong> @order.Status</div>
+                                    <div><strong>Total:</strong> R @order.TotalAmount.ToString("F2")</div>
+                                </div>
+                            </div>
+
+                            @if (order.OrderItems != null && order.OrderItems.Any())
+                            {
+                                <hr />
+                                <div class="mb-3">
+                                    <strong>Items:</strong>
+                                    @string.Join(", ", order.OrderItems.Select(i => $"{i.MenuItem?.Name} x{i.Quantity}"))
+                                </div>
+                            }
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a asp-controller="DriverOrders" asp-action="Details" asp-route-id="@order.OrderId" class="btn btn-primary">
+                                    View Delivery
+                                </a>
+
+                                <a asp-controller="OrderTracking" asp-action="Track" asp-route-id="@order.OrderId" class="btn btn-outline-primary">
+                                    Track View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

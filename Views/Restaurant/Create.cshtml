@@ -38,6 +38,24 @@
             </div>
 
             <div class="form-group mb-3">
+                <label asp-for="Latitude" class="control-label"></label>
+                <input asp-for="Latitude" class="form-control" placeholder="Example: -25.747868" />
+                <span asp-validation-for="Latitude" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Longitude" class="control-label"></label>
+                <input asp-for="Longitude" class="form-control" placeholder="Example: 28.229271" />
+                <span asp-validation-for="Longitude" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DeliveryRadiusKm" class="control-label">Delivery Radius KM</label>
+                <input asp-for="DeliveryRadiusKm" class="form-control" placeholder="Example: 10" />
+                <span asp-validation-for="DeliveryRadiusKm" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
                 <label asp-for="LogoUrl" class="control-label"></label>
                 <input asp-for="LogoUrl" class="form-control" placeholder="e.g., /images/logos/burger-palace.png" />
                 <span asp-validation-for="LogoUrl" class="text-danger"></span>

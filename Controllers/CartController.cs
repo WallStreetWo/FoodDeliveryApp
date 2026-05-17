@@ -1,53 +1,80 @@
 using FoodDeliveryApp.Data;
 using FoodDeliveryApp.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Threading.Tasks;
 
-// This attribute marks the class as an API controller.
-// It enables features that make returning data easier.
-[ApiController]
-[Route("api/[controller]")] // This sets the base URL for this controller to be /api/Cart
-public class CartController : ControllerBase
+namespace FoodDeliveryApp.Controllers
 {
-    private readonly ShoppingCartService _cartService;
-    private readonly ApplicationDbContext _context;
-
-    // We inject both our cart service and the database context.
-    public CartController(ShoppingCartService cartService, ApplicationDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CartController : ControllerBase
     {
-        _cartService = cartService;
-        _context = context;
-    }
+        private readonly ShoppingCartService _cartService;
+        private readonly ApplicationDbContext _context;
 
-    // This action will be triggered by a POST request to /api/Cart/AddToCart/{id}
-    [HttpPost("AddToCart/{id}")]
-    public async Task<IActionResult> AddToCart(int id)
-    {
-        // Find the menu item in the database
-        var menuItem = await _context.MenuItems.FindAsync(id);
-
-        if (menuItem == null)
+        public CartController(ShoppingCartService cartService, ApplicationDbContext context)
         {
-            // If the item doesn't exist, return a "Not Found" error.
-            return NotFound(new { message = "Menu item not found." });
+            _cartService = cartService;
+            _context = context;
         }
 
-        // Use our service to add the item to the cart stored in the session.
-        _cartService.AddToCart(menuItem);
+        [HttpPost("AddToCart/{id:int}")]
+        public IActionResult AddToCart(int id)
+        {
+            var menuItem = _context.MenuItems.FirstOrDefault(m => m.MenuItemId == id);
 
-        // Return a success response. We can include a simple message.
-        // Later, we can return the updated cart count here.
-        return Ok(new { message = $"{menuItem.Name} was added to your cart." });
+            if (menuItem == null)
+            {
+                return NotFound(new { message = "Menu item not found." });
+            }
 
+            _cartService.AddToCart(menuItem);
+            return Ok(BuildCartResponse("Item added to cart."));
+        }
 
+        [HttpPost("RemoveFromCart/{id:int}")]
+        public IActionResult RemoveFromCart(int id)
+        {
+            _cartService.RemoveFromCart(id);
+            return Ok(BuildCartResponse("Item quantity reduced."));
+        }
+
+        [HttpPost("RemoveItemCompletely/{id:int}")]
+        public IActionResult RemoveItemCompletely(int id)
+        {
+            _cartService.RemoveItemCompletely(id);
+            return Ok(BuildCartResponse("Item removed from cart."));
+        }
+
+        [HttpPost("ClearCart")]
+        public IActionResult ClearCart()
+        {
+            _cartService.ClearCart();
+            return Ok(new
+            {
+                message = "Cart cleared.",
+                count = 0,
+                total = 0
+            });
+        }
+
+        [HttpGet("GetCartSummary")]
+        public IActionResult GetCartSummary()
+        {
+            return Ok(new
+            {
+                count = _cartService.GetCartCount(),
+                total = _cartService.GetCartTotal()
+            });
+        }
+
+        private object BuildCartResponse(string message)
+        {
+            return new
+            {
+                message,
+                count = _cartService.GetCartCount(),
+                total = _cartService.GetCartTotal()
+            };
+        }
     }
-    [HttpPost("ClearCart")]
-    public IActionResult ClearCart()
-    {
-        _cartService.ClearCart();
-        return Ok(new { message = "Cart has been cleared." });
-    }
-
-    
 }
