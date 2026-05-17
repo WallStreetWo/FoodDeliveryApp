@@ -1,110 +1,674 @@
-@using Microsoft.AspNetCore.Hosting
-@using Microsoft.AspNetCore.Mvc.ViewEngines
-@inject IWebHostEnvironment Environment
-@inject ICompositeViewEngine Engine
+@using FoodDeliveryApp.Models
+@using FoodDeliveryApp.Constants
+@using FoodDeliveryApp.Services
+@using Microsoft.AspNetCore.Identity
+
+@inject INotificationService NotificationService
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var currentArea = ViewContext.RouteData.Values["area"]?.ToString() ?? "";
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    var isAuthPage =
+        string.Equals(currentArea, "Identity", StringComparison.OrdinalIgnoreCase) &&
+        currentPage.StartsWith("/Account", StringComparison.OrdinalIgnoreCase);
+
+    var isSignedIn = SignInManager.IsSignedIn(User);
+    var isAdmin = isSignedIn && User.IsInRole(AppRoles.Admin);
+    var currentUserName = isSignedIn ? (UserManager.GetUserName(User) ?? "Account") : "Guest";
+
+    var unreadNotifications = 0;
+
+    if (isSignedIn)
+    {
+        var currentUserId = UserManager.GetUserId(User);
+
+        if (!string.IsNullOrWhiteSpace(currentUserId))
+        {
+            unreadNotifications = await NotificationService.GetUnreadCountAsync(currentUserId);
+        }
+    }
+
+    bool IsActiveController(string controllerName) =>
+        string.Equals(currentController, controllerName, StringComparison.OrdinalIgnoreCase);
+
+    bool IsActiveIdentityPage(string pageName) =>
+        string.Equals(currentArea, "Identity", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(currentPage, pageName, StringComparison.OrdinalIgnoreCase);
+
+    bool IsBrowseActive() =>
+        string.Equals(currentController, "Restaurant", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(currentController, "Search", StringComparison.OrdinalIgnoreCase);
+}
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - FoodDeliveryApp</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <title>@ViewData["Title"] - Snack Dash</title>
 
-    <environment include="Development">
-        <link rel="stylesheet" href="~/Identity/lib/bootstrap/dist/css/bootstrap.css" />
-        <link rel="stylesheet" href="~/Identity/css/site.css" />
-    </environment>
-    <environment exclude="Development">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
-              integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous"
-              asp-fallback-href="~/Identity/lib/bootstrap/dist/css/bootstrap.min.css"
-              asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute" />
-        <link rel="stylesheet" href="~/Identity/css/site.css" asp-append-version="true" />
-    </environment>
+    <link rel="icon" type="image/png" href="~/images/snackdash-logo-dark.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <style>
+        :root {
+            --sd-bg: #fffaf2;
+            --sd-surface: #ffffff;
+            --sd-surface-soft: #fff7ea;
+            --sd-text: #1d1d1f;
+            --sd-muted: #6b7280;
+            --sd-line: #ece4d5;
+            --sd-primary: #f59e0b;
+            --sd-primary-dark: #d97706;
+            --sd-dark: #111111;
+            --sd-shadow: 0 18px 45px rgba(17, 17, 17, 0.08);
+            --sd-radius: 22px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 18%),
+                radial-gradient(circle at top right, rgba(251, 191, 36, 0.10), transparent 20%),
+                var(--sd-bg);
+            color: var(--sd-text);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        body.sd-auth-body {
+            background:
+                radial-gradient(circle at top left, rgba(255, 193, 7, 0.18), transparent 25%),
+                radial-gradient(circle at top right, rgba(255, 152, 0, 0.12), transparent 20%),
+                linear-gradient(135deg, #0f0f10 0%, #171718 52%, #1f1b12 100%);
+        }
+
+        .sd-app-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sd-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1050;
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+            border-bottom: 1px solid rgba(236, 228, 213, 0.96);
+            box-shadow: 0 6px 24px rgba(17, 17, 17, 0.05);
+        }
+
+        .sd-navbar .container-fluid {
+            max-width: 1440px;
+            padding-left: 1.2rem;
+            padding-right: 1.2rem;
+        }
+
+        .sd-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--sd-text);
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 0.2px;
+        }
+
+        .sd-brand:hover {
+            color: var(--sd-text);
+        }
+
+        .sd-brand-mark {
+            width: 46px;
+            height: 46px;
+            object-fit: contain;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #fff4db, #fff0cc);
+            padding: 6px;
+            box-shadow: 0 10px 22px rgba(245, 158, 11, 0.18);
+        }
+
+        .sd-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.05;
+        }
+
+        .sd-brand-text small {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--sd-muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .sd-nav-link {
+            color: #30323a !important;
+            font-weight: 700;
+            padding: 0.8rem 0.95rem !important;
+            border-radius: 999px;
+            transition: all 0.18s ease;
+        }
+
+        .sd-nav-link:hover,
+        .sd-nav-link.sd-active {
+            color: var(--sd-dark) !important;
+            background: #fff4db;
+        }
+
+        .sd-search-pill,
+        .sd-cart-pill,
+        .sd-auth-pill,
+        .sd-user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 999px;
+            padding: 0.72rem 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.18s ease;
+        }
+
+        .sd-search-pill {
+            color: #2c2f36;
+            background: #fff7ea;
+            border: 1px solid #f2e4c8;
+        }
+
+        .sd-search-pill:hover {
+            color: var(--sd-dark);
+            background: #fff1d4;
+        }
+
+        .sd-cart-pill {
+            color: #fff;
+            background: linear-gradient(135deg, var(--sd-primary), var(--sd-primary-dark));
+            box-shadow: 0 12px 26px rgba(245, 158, 11, 0.24);
+        }
+
+        .sd-cart-pill:hover {
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .sd-cart-count {
+            min-width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.22);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 800;
+            padding: 0 6px;
+        }
+
+        .sd-auth-pill {
+            color: #2c2f36;
+            background: #ffffff;
+            border: 1px solid #e5dccd;
+        }
+
+        .sd-auth-pill:hover {
+            color: var(--sd-dark);
+            border-color: #d7c7ac;
+            background: #fff9ef;
+        }
+
+        .sd-auth-pill.primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--sd-primary), var(--sd-primary-dark));
+            border: none;
+            box-shadow: 0 12px 26px rgba(245, 158, 11, 0.22);
+        }
+
+        .sd-auth-pill.primary:hover {
+            color: #fff;
+        }
+
+        .sd-user-pill {
+            color: #2c2f36;
+            background: #fff7ea;
+            border: 1px solid #f0dfbe;
+        }
+
+        .sd-user-pill:hover {
+            color: var(--sd-dark);
+            background: #fff0d2;
+        }
+
+        .sd-dropdown-menu {
+            border: 1px solid #f0e3ca;
+            border-radius: 18px;
+            box-shadow: 0 18px 38px rgba(17, 17, 17, 0.08);
+            padding: 10px;
+            min-width: 240px;
+        }
+
+        .sd-dropdown-item {
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 0.75rem 0.9rem;
+        }
+
+        .sd-dropdown-item:hover {
+            background: #fff4db;
+        }
+
+        .sd-main {
+            flex: 1;
+            width: 100%;
+        }
+
+        .sd-main.sd-standard {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 28px 18px 40px;
+        }
+
+        .sd-main.sd-auth {
+            padding: 0;
+            max-width: none;
+        }
+
+        .sd-page-alerts {
+            margin-bottom: 18px;
+        }
+
+        .sd-alert {
+            border: none;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(17,17,17,0.04);
+        }
+
+        .sd-footer {
+            border-top: 1px solid rgba(236, 228, 213, 0.92);
+            background: rgba(255,255,255,0.76);
+            backdrop-filter: blur(10px);
+            margin-top: auto;
+        }
+
+        .sd-footer-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 18px 18px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: var(--sd-muted);
+            font-size: 0.95rem;
+        }
+
+        .sd-footer-links {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .sd-footer-links a {
+            color: var(--sd-muted);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .sd-footer-links a:hover {
+            color: var(--sd-dark);
+        }
+
+        .sd-auth-free {
+            width: 100%;
+        }
+
+        .navbar-toggler {
+            border: none;
+            box-shadow: none !important;
+        }
+
+        @@media (max-width: 991.98px) {
+            .sd-navbar .container-fluid {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .sd-main.sd-standard {
+                padding: 22px 14px 34px;
+            }
+
+            .sd-mobile-stack {
+                gap: 12px;
+                padding-top: 10px;
+            }
+
+            .sd-mobile-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+                margin-top: 12px;
+            }
+
+            .sd-mobile-actions > * {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
-<body>
-    <header>
-    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-        <div class="container-fluid">
-            <!-- Main Brand/Logo Link -->
-            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SnackDash</a>
-            
-            <!-- Mobile Hamburger Menu Button -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                    aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                <!-- Left-side Navigation Links -->
-                <ul class="navbar-nav flex-grow-1">
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <!-- You can add other links like an "Orders" page here later -->
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Order" asp-action="Index">My Orders</a>
-                    </li>
-                </ul>
-
-                <!-- Right-side Navigation Links -->
-                <ul class="navbar-nav">
-                    <!-- The Shopping Cart Link -->
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" asp-controller="Checkout" asp-action="Index">
-                            <i class="fas fa-shopping-cart"></i> Cart
-                            <!-- This span will be updated by JavaScript later to show the count -->
-                            <span id="cart-item-count" class="badge bg-danger rounded-pill" style="vertical-align: top;">0</span>
+<body class="@(isAuthPage ? "sd-auth-body" : "")">
+    <div class="sd-app-shell">
+        @if (!isAuthPage)
+        {
+            <header>
+                <nav class="navbar navbar-expand-lg sd-navbar">
+                    <div class="container-fluid">
+                        <a class="sd-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                            <img src="~/images/snackdash-logo-dark.png" alt="Snack Dash" class="sd-brand-mark" />
+                            <span class="sd-brand-text">
+                                <span>Snack Dash</span>
+                                <small>Fresh food, faster</small>
+                            </span>
                         </a>
-                    </li>
-                </ul>
 
-                <!-- This renders the Login/Register or "Hello User!" links -->
-                <partial name="_LoginPartial" />
-            </div>
-        </div>
-    </nav>
-</header>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sdNavbar"
+                                aria-controls="sdNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                            <span><i class="fa-solid fa-bars"></i></span>
+                        </button>
 
-    <div class="container">
-        <partial name="_CookieConsentPartial" optional />
-        <main role="main" class="pb-1">
+                        <div class="collapse navbar-collapse" id="sdNavbar">
+                            <ul class="navbar-nav ms-lg-4 me-auto mb-2 mb-lg-0 sd-mobile-stack">
+                                <li class="nav-item">
+                                    <a class="nav-link sd-nav-link @(IsActiveController("Home") ? "sd-active" : "")"
+                                       asp-area="" asp-controller="Home" asp-action="Index">
+                                        Home
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link sd-nav-link @(IsBrowseActive() ? "sd-active" : "")"
+                                       asp-area="" asp-controller="Search" asp-action="Index">
+                                        Browse
+                                    </a>
+                                </li>
+
+                                @if (isSignedIn)
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link sd-nav-link @(IsActiveController("Order") ? "sd-active" : "")"
+                                           asp-controller="Order"
+                                           asp-action="Index">
+                                            My Orders
+                                        </a>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <a class="nav-link sd-nav-link @(IsActiveController("Checkout") ? "sd-active" : "")"
+                                           asp-area=""
+                                           asp-controller="Checkout"
+                                           asp-action="Index">
+                                            Checkout
+                                        </a>
+                                    </li>
+                                }
+
+                                @if (isAdmin)
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link sd-nav-link @(IsActiveController("AdminOrders") ? "sd-active" : "")"
+                                           asp-controller="AdminOrders"
+                                           asp-action="Index">
+                                            Manage Orders
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+
+                            <div class="d-flex align-items-lg-center gap-2 flex-column flex-lg-row sd-mobile-actions">
+                                <a class="sd-search-pill"
+                                   asp-area=""
+                                   asp-controller="Search"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <span>Find food</span>
+                                </a>
+
+                                @if (isSignedIn)
+                                {
+                                    <a class="sd-cart-pill"
+                                       asp-area=""
+                                       asp-controller="Checkout"
+                                       asp-action="Index">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                        <span>Cart</span>
+                                        <span id="cart-item-count" class="sd-cart-count">0</span>
+                                    </a>
+
+                                    <div class="dropdown">
+                                        <button class="sd-user-pill border-0 dropdown-toggle"
+                                                type="button"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+                                            <i class="fa-regular fa-user"></i>
+                                            <span>@currentUserName</span>
+                                        </button>
+
+                                        <ul class="dropdown-menu dropdown-menu-end sd-dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item sd-dropdown-item"
+                                                   asp-area="Identity"
+                                                   asp-page="/Account/Manage/Index">
+                                                    <i class="fa-regular fa-id-badge me-2"></i>My Account
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <a class="dropdown-item sd-dropdown-item"
+                                                   asp-controller="Order"
+                                                   asp-action="Index">
+                                                    <i class="fa-solid fa-receipt me-2"></i>My Orders
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <a class="dropdown-item sd-dropdown-item"
+                                                   asp-area=""
+                                                   asp-controller="Checkout"
+                                                   asp-action="Index">
+                                                    <i class="fa-solid fa-bag-shopping me-2"></i>My Cart
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <a class="dropdown-item sd-dropdown-item"
+                                                asp-controller="Notifications"
+                                                asp-action="Index">
+                                                    <i class="fa-solid fa-bell me-2"></i>Notifications
+
+                                                    @if (unreadNotifications > 0)
+                                                    {
+                                                        <span class="badge bg-danger ms-2">@unreadNotifications</span>
+                                                    }
+                                                </a>
+                                            </li>
+
+                                            @if (User.IsInRole(AppRoles.Driver))
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item sd-dropdown-item"
+                                                    asp-controller="DriverOrders"
+                                                    asp-action="Index">
+                                                        <i class="fa-solid fa-motorcycle me-2"></i>My Deliveries
+                                                    </a>
+                                                </li>
+                                            }
+
+                                            @if (isAdmin)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item sd-dropdown-item"
+                                                       asp-controller="AdminOrders"
+                                                       asp-action="Index">
+                                                        <i class="fa-solid fa-clipboard-list me-2"></i>Manage Orders
+                                                    </a>
+                                                </li>
+
+                                                <li>
+                                                    <a class="dropdown-item sd-dropdown-item"
+                                                       asp-area=""
+                                                       asp-controller="Restaurant"
+                                                       asp-action="Create">
+                                                        <i class="fa-solid fa-store me-2"></i>Add Restaurant
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item sd-dropdown-item"
+                                                    asp-controller="AdminDrivers"
+                                                    asp-action="Index">
+                                                        <i class="fa-solid fa-motorcycle me-2"></i>Manage Drivers
+                                                    </a>
+                                                </li>
+                                            }
+
+                                            <li><hr class="dropdown-divider" /></li>
+
+                                            <li>
+                                                <form id="logoutForm"
+                                                      asp-area="Identity"
+                                                      asp-page="/Account/Logout"
+                                                      asp-route-returnUrl="@Url.Page("/Account/Login", new { area = "Identity" })"
+                                                      method="post"
+                                                      class="m-0">
+                                                    <button type="submit" class="dropdown-item sd-dropdown-item">
+                                                        <i class="fa-solid fa-right-from-bracket me-2"></i>Log out
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <a class="sd-auth-pill"
+                                       asp-area="Identity"
+                                       asp-page="/Account/Login">
+                                        <i class="fa-solid fa-right-to-bracket"></i>
+                                        <span>Log in</span>
+                                    </a>
+
+                                    <a class="sd-auth-pill primary"
+                                       asp-area="Identity"
+                                       asp-page="/Account/Register">
+                                        <i class="fa-solid fa-user-plus"></i>
+                                        <span>Sign up</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </header>
+        }
+
+        <main role="main" class="sd-main @(isAuthPage ? "sd-auth" : "sd-standard")">
+            @if (!isAuthPage)
+            {
+                <div class="sd-page-alerts">
+                    <partial name="_CookieConsentPartial" optional />
+                </div>
+            }
+
             @RenderBody()
         </main>
-    </div>
-    <footer class="footer border-top pl-3 text-muted">
-        <div class="container">
-        &copy; 2025 - FoodDeliveryApp
-            @{
-                var foundPrivacy = Url.Page("/Privacy", new { area = "" });
-            }
-            @if (foundPrivacy != null)
-            {
-                <a asp-area="" asp-page="/Privacy">Privacy</a>
-            }
-        </div>
-    </footer>
 
-    <environment include="Development">
-        <script src="~/Identity/lib/jquery/dist/jquery.js"></script>
-        <script src="~/Identity/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
-        <script src="~/Identity/js/site.js" asp-append-version="true"></script>
-    </environment>
-    <environment exclude="Development">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
-                asp-fallback-src="~/Identity/lib/jquery/dist/jquery.min.js"
-                asp-fallback-test="window.jQuery"
-                crossorigin="anonymous"
-                integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2">
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
-                asp-fallback-src="~/Identity/lib/bootstrap/dist/js/bootstrap.bundle.min.js"
-                asp-fallback-test="window.jQuery && window.jQuery.fn && window.jQuery.fn.modal"
-                crossorigin="anonymous"
-                integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj">
-        </script>
-        <script src="~/Identity/js/site.js" asp-append-version="true"></script>
-    </environment>
+        @if (!isAuthPage)
+        {
+            <footer class="sd-footer">
+                <div class="sd-footer-inner">
+                    <div>
+                        &copy; @DateTime.Now.Year - Snack Dash
+                    </div>
+
+                    <div class="sd-footer-links">
+                        <a asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        <a asp-area="" asp-controller="Search" asp-action="Index">Browse</a>
+
+                        @if (isSignedIn)
+                        {
+                            <a asp-area="" asp-controller="Checkout" asp-action="Index">Cart</a>
+                            <a asp-area="" asp-controller="Order" asp-action="Index">My Orders</a>
+                        }
+                        else
+                        {
+                            <a asp-area="Identity" asp-page="/Account/Login">Login</a>
+                            <a asp-area="Identity" asp-page="/Account/Register">Register</a>
+                        }
+
+                        @if (isAdmin)
+                        {
+                            <a asp-controller="AdminOrders" asp-action="Index">Manage Orders</a>
+                        }
+                    </div>
+                </div>
+            </footer>
+        }
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        async function refreshCartBadge() {
+            const badge = document.getElementById("cart-item-count");
+            if (!badge) return;
+
+            try {
+                const response = await fetch("/api/Cart/GetCartSummary", {
+                    method: "GET",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Could not fetch cart summary.");
+                }
+
+                const data = await response.json();
+                const count = Number(data.count ?? 0);
+
+                badge.textContent = count;
+            } catch (error) {
+                console.error("Cart badge refresh failed:", error);
+                badge.textContent = "0";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            refreshCartBadge();
+        });
+
+        document.addEventListener("cart:updated", function () {
+            refreshCartBadge();
+        });
+
+        window.refreshCartBadge = refreshCartBadge;
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

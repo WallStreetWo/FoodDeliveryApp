@@ -1,0 +1,74 @@
+@model FoodDeliveryApp.Models.Order
+
+@{
+    ViewData["Title"] = "Order Success";
+}
+
+<div class="container py-4">
+    @if (TempData["OrderSuccess"] != null)
+    {
+        <div class="alert alert-success mb-4">
+            @TempData["OrderSuccess"]
+        </div>
+    }
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+            <h1 class="mb-3">Order placed successfully</h1>
+            <p class="text-muted mb-4">
+                Your order has been submitted and is now being processed.
+            </p>
+
+            <div class="mb-4">
+                <div><strong>Order Number:</strong> #@Model.OrderId</div>
+                <div><strong>Restaurant:</strong> @(Model.Restaurant?.Name ?? "Unknown Restaurant")</div>
+                <div><strong>Status:</strong> @Model.Status</div>
+                <div><strong>Placed:</strong> @Model.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                <div><strong>Total:</strong> R @Model.TotalAmount.ToString("F2")</div>
+            </div>
+
+            <h4 class="mb-3">Items</h4>
+
+            @if (Model.OrderItems != null && Model.OrderItems.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.OrderItems)
+                            {
+                                <tr>
+                                    <td>@item.MenuItem?.Name</td>
+                                    <td>@item.Quantity</td>
+                                    <td>R @item.UnitPrice.ToString("F2")</td>
+                                    <td>R @((item.Quantity * item.UnitPrice).ToString("F2"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="d-flex gap-2 flex-wrap mt-4">
+                <a asp-controller="OrderTracking" asp-action="Track" asp-route-id="@Model.OrderId" class="btn btn-primary">
+                    Track Order
+                </a>
+
+                <a asp-controller="Order" asp-action="Index" class="btn btn-outline-primary">
+                    My Orders
+                </a>
+
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                    Continue Shopping
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

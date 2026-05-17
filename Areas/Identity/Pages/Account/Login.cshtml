@@ -6,121 +6,613 @@
 }
 
 <style>
-    /* We'll hide the default navbar and footer for a clean splash screen look */
-    header, footer {
+    header,
+    footer,
+    .navbar,
+    .footer {
         display: none !important;
     }
 
-    .field-icon {
-        float: right;
-        margin-left: -25px;
-        margin-top: -35px; /* Adjust this value to vertically align the icon */
-        position: relative;
-        z-index: 2;
-        cursor: pointer;
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background:
+            radial-gradient(circle at top left, rgba(255, 193, 7, 0.22), transparent 28%),
+            radial-gradient(circle at top right, rgba(255, 152, 0, 0.16), transparent 24%),
+            linear-gradient(135deg, #0f0f10 0%, #171718 52%, #1f1b12 100%);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    .login-container {
+    body {
+        overflow-x: hidden;
+    }
+
+    main,
+    .container,
+    .container-fluid {
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .auth-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        position: relative;
+    }
+
+    .auth-shell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 25%, rgba(255, 193, 7, 0.20), transparent 22%),
+            radial-gradient(circle at 82% 18%, rgba(255, 152, 0, 0.14), transparent 18%);
+        pointer-events: none;
+    }
+
+    .auth-hero {
+        position: relative;
+        z-index: 1;
+        padding: 56px 56px 48px;
         display: flex;
         flex-direction: column;
         justify-content: center;
+        color: #fff;
+    }
+
+    .brand-badge {
+        display: inline-flex;
         align-items: center;
-        min-height: 100vh;
-        background-color: #f7f7f7;
-        overflow: hidden;
-        padding: 20px;
+        gap: 12px;
+        width: fit-content;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        backdrop-filter: blur(10px);
+        margin-bottom: 28px;
     }
 
-    /* Container for the logo animation */
-    .logo-animation {
+    .brand-badge img {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+    }
+
+    .brand-badge span {
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    .auth-kicker {
+        display: inline-block;
+        width: fit-content;
+        margin-bottom: 18px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 193, 7, 0.16);
+        color: #ffd54f;
+        border: 1px solid rgba(255, 193, 7, 0.25);
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .auth-title {
+        font-size: clamp(2.5rem, 5vw, 4.7rem);
+        line-height: 1.02;
+        font-weight: 800;
+        margin-bottom: 18px;
+        max-width: 640px;
+    }
+
+    .auth-title .accent {
+        color: #ffca28;
+    }
+
+    .auth-copy {
+        max-width: 580px;
+        font-size: 1.08rem;
+        line-height: 1.75;
+        color: rgba(255,255,255,0.82);
+        margin-bottom: 30px;
+    }
+
+    .auth-points {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        max-width: 620px;
+    }
+
+    .auth-point {
+        padding: 16px 18px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.09);
+        color: rgba(255,255,255,0.88);
+        font-size: 0.98rem;
+        line-height: 1.5;
+    }
+
+    .auth-point strong {
+        color: #fff;
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1rem;
+    }
+
+    .auth-panel-wrap {
         position: relative;
-        width: 300px; /* Adjust size as needed */
-        margin-bottom: 2rem;
-        text-align: center; /* Center the text below the graphic */
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 38px 28px;
     }
 
-    /* UPDATED: Animates only the graphic part */
-    .logo-graphic {
+    .auth-panel {
         width: 100%;
-        opacity: 0;
-        animation: dashAcross 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        max-width: 540px;
+        background: rgba(255,255,255,0.95);
+        border: 1px solid rgba(255,255,255,0.7);
+        box-shadow: 0 30px 80px rgba(0,0,0,0.28);
+        border-radius: 34px;
+        overflow: hidden;
+        backdrop-filter: blur(16px);
     }
 
-    .login-form {
-        opacity: 0;
-        animation: fadeInForm 1s ease-in 1.8s forwards;
+    .panel-top {
+        background:
+            linear-gradient(180deg, rgba(255,193,7,0.96) 0%, rgba(255,152,0,0.92) 100%);
+        padding: 32px 32px 26px;
+        text-align: center;
+        color: #171717;
+        position: relative;
+    }
+
+    .panel-top::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 56px;
+        background: #fff;
+        border-top-left-radius: 32px;
+        border-top-right-radius: 32px;
+    }
+
+    .panel-logo {
+        position: relative;
+        z-index: 1;
+        width: 88px;
+        height: 88px;
+        object-fit: contain;
+        margin-bottom: 12px;
+        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.18));
+    }
+
+    .panel-title {
+        position: relative;
+        z-index: 1;
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .panel-subtitle {
+        position: relative;
+        z-index: 1;
+        color: rgba(0,0,0,0.72);
+        font-size: 0.98rem;
+        margin-bottom: 0;
+    }
+
+    .panel-body {
+        padding: 24px 32px 32px;
+    }
+
+    .validation-summary-errors ul,
+    .validation-summary-valid ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .auth-alert {
+        background: #fff3f3;
+        border: 1px solid #f4b7b7;
+        color: #b42318;
+        border-radius: 18px;
+        padding: 14px 16px;
+        margin-bottom: 18px;
+        font-size: 0.95rem;
+    }
+
+    .field-group {
+        margin-bottom: 18px;
+    }
+
+    .field-label {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #20232d;
+        margin-bottom: 8px;
+    }
+
+    .input-wrap {
+        position: relative;
+    }
+
+    .auth-input {
         width: 100%;
-        max-width: 380px;
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        height: 58px;
+        border-radius: 18px;
+        border: 1px solid #d8dee8;
+        background: #fbfcff;
+        padding: 0 50px 0 16px;
+        font-size: 1rem;
+        color: #1d2433;
+        transition: all 0.2s ease;
+        box-shadow: none;
     }
 
-    
+    .auth-input:focus {
+        outline: none;
+        border-color: #f4b400;
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(244, 180, 0, 0.15);
+    }
 
-    /* --- KEYFRAME ANIMATIONS (No changes here) --- */
-    @@keyframes dashAcross {
-        0% { opacity: 1; transform: translateX(-150%); }
-        100% { opacity: 1; transform: translateX(0); }
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 6px 8px;
     }
-    @@keyframes revealText {
-        0% { opacity: 0; transform: scale(0.8); }
-        100% { opacity: 1; transform: scale(1); }
+
+    .password-toggle:hover {
+        color: #111827;
     }
-    @@keyframes fadeInForm {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+
+    .text-danger {
+        display: block;
+        font-size: 0.88rem;
+        margin-top: 6px;
+    }
+
+    .auth-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin: 6px 0 20px;
+        flex-wrap: wrap;
+    }
+
+    .remember-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #374151;
+        font-size: 0.95rem;
+    }
+
+    .remember-row input {
+        width: 18px;
+        height: 18px;
+        accent-color: #f4b400;
+    }
+
+    .auth-link {
+        color: #c56b00;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .auth-link:hover {
+        text-decoration: underline;
+    }
+
+    .auth-submit {
+        width: 100%;
+        border: none;
+        border-radius: 18px;
+        height: 58px;
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: #171717;
+        background: linear-gradient(180deg, #ffca28 0%, #ffb300 100%);
+        box-shadow: 0 12px 24px rgba(255, 179, 0, 0.28);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .auth-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(255, 179, 0, 0.34);
+    }
+
+    .auth-submit:active {
+        transform: translateY(0);
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: #7b8596;
+        font-size: 0.92rem;
+        margin: 22px 0 18px;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .external-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 12px;
+    }
+
+    .external-btn {
+        border: 1px solid #d8dee8;
+        background: #fff;
+        color: #1f2937;
+        height: 52px;
+        border-radius: 16px;
+        font-weight: 700;
+        transition: all 0.18s ease;
+    }
+
+    .external-btn:hover {
+        border-color: #f4b400;
+        background: #fffaf0;
+    }
+
+    .bottom-copy {
+        text-align: center;
+        margin-top: 22px;
+        color: #5f6b7b;
+        font-size: 0.96rem;
+    }
+
+    .bottom-copy a {
+        color: #111827;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .bottom-copy a:hover {
+        text-decoration: underline;
+    }
+
+    @@media (max-width: 1100px) {
+        .auth-shell {
+            grid-template-columns: 1fr;
+        }
+
+        .auth-hero {
+            min-height: auto;
+            padding: 42px 24px 18px;
+        }
+
+        .auth-title {
+            font-size: 2.6rem;
+            max-width: none;
+        }
+
+        .auth-copy {
+            max-width: none;
+        }
+
+        .auth-points {
+            grid-template-columns: 1fr;
+            max-width: none;
+        }
+
+        .auth-panel-wrap {
+            padding: 12px 18px 28px;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .auth-hero {
+            padding: 32px 18px 10px;
+        }
+
+        .brand-badge {
+            margin-bottom: 20px;
+        }
+
+        .brand-badge img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .auth-title {
+            font-size: 2.1rem;
+        }
+
+        .auth-copy {
+            font-size: 0.98rem;
+        }
+
+        .auth-panel-wrap {
+            padding: 8px 12px 22px;
+        }
+
+        .auth-panel {
+            border-radius: 26px;
+        }
+
+        .panel-top {
+            padding: 26px 20px 24px;
+        }
+
+        .panel-body {
+            padding: 18px 18px 24px;
+        }
+
+        .panel-title {
+            font-size: 1.7rem;
+        }
     }
 </style>
 
-<div class="login-container">
+<div class="auth-shell">
+    <div class="auth-hero">
+        <div class="brand-badge">
+            <img src="~/images/snackdash-logo-dark.png" alt="Snack Dash" />
+            <span>Snack Dash</span>
+        </div>
 
-    <!-- UPDATED: Using two separate, transparent PNGs -->
-    <div class="logo-animation">
-        <img src="~/images/snackdash-logo-dark.png" alt="SnackDash Logo Animation" class="logo-graphic" />
+        <span class="auth-kicker">Fresh food. Faster checkout. Better ordering.</span>
+
+        <h1 class="auth-title">
+            Sign in and get back to
+            <span class="accent">what you’re craving.</span>
+        </h1>
+
+        <p class="auth-copy">
+            Snack Dash makes ordering simple, quick, and enjoyable. Log in to browse restaurants,
+            manage your cart, place orders, and track your next meal with a cleaner, more modern experience.
+        </p>
+
+        <div class="auth-points">
+            <div class="auth-point">
+                <strong>Easy ordering</strong>
+                Browse menus, add items quickly, and check out with less friction.
+            </div>
+            <div class="auth-point">
+                <strong>Smarter customer flow</strong>
+                Clean sign-in, cleaner navigation, and a better user journey from login to order.
+            </div>
+            <div class="auth-point">
+                <strong>Secure access</strong>
+                Built on ASP.NET Core Identity with authentication-ready flows.
+            </div>
+            <div class="auth-point">
+                <strong>Ready for growth</strong>
+                Designed to support customer, admin, and future order tracking experiences.
+            </div>
+        </div>
     </div>
 
-    <div class="login-form">
-        <section>
-            <form id="account" method="post">
-                <h2 class="text-center">Welcome Back!</h2>
-                <hr />
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label asp-for="Input.Email" class="form-label"></label>
-                    <span asp-validation-for="Input.Email" class="text-danger"></span>
-                </div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label asp-for="Input.Password" class="form-label"></label>
-                    <!--span toggle="#Input_Password" class="fa fa-fw fa-eye field-icon toggle-password"></span> -->
-                    <span asp-validation-for="Input.Password" class="text-danger"></span>
-                </div>
-                <div class="checkbox mb-3">
-                    <label asp-for="Input.RememberMe" class="form-label">
-                        <input class="form-check-input" asp-for="Input.RememberMe" />
-                        @Html.DisplayNameFor(m => m.Input.RememberMe)
-                    </label>
-                </div>
-                <div>
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div class="mt-3 text-center">
-                    <p>
-                        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a>
-                    </p>
-                </div>
-            </form>
-        </section>
-    </div>
+    <div class="auth-panel-wrap">
+        <div class="auth-panel">
+            <div class="panel-top">
+                <img src="~/images/snackdash-logo-dark.png" alt="Snack Dash" class="panel-logo" />
+                <div class="panel-title">Welcome Back</div>
+                <p class="panel-subtitle">Log in to continue your Snack Dash experience.</p>
+            </div>
 
+            <div class="panel-body">
+                <form id="account" method="post" asp-route-returnUrl="@Model.ReturnUrl">
+                    <div asp-validation-summary="ModelOnly" class="auth-alert" role="alert"></div>
+
+                    <div class="field-group">
+                        <label asp-for="Input.Email" class="field-label">Email Address</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.Email"
+                                   class="auth-input"
+                                   autocomplete="username"
+                                   aria-required="true"
+                                   placeholder="name@example.com" />
+                        </div>
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="Input.Password" class="field-label">Password</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.Password"
+                                   class="auth-input"
+                                   id="loginPassword"
+                                   autocomplete="current-password"
+                                   aria-required="true"
+                                   placeholder="Enter your password" />
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">Show</button>
+                        </div>
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="auth-row">
+                        <label asp-for="Input.RememberMe" class="remember-row">
+                            <input asp-for="Input.RememberMe" />
+                            <span>@Html.DisplayNameFor(m => m.Input.RememberMe)</span>
+                        </label>
+
+                        <a id="forgot-password" asp-page="./ForgotPassword" class="auth-link">Forgot Password?</a>
+                    </div>
+
+                    <button id="login-submit" type="submit" class="auth-submit">Log In</button>
+                </form>
+
+                @if ((Model.ExternalLogins?.Count ?? 0) > 0)
+                {
+                    <div class="divider">or continue with</div>
+
+                    <form id="external-account"
+                          asp-page="./ExternalLogin"
+                          asp-route-returnUrl="@Model.ReturnUrl"
+                          method="post">
+                        <div class="external-grid">
+                            @foreach (var provider in Model.ExternalLogins!)
+                            {
+                                <button type="submit"
+                                        class="external-btn"
+                                        name="provider"
+                                        value="@provider.Name"
+                                        title="Log in using your @provider.DisplayName account">
+                                    @provider.DisplayName
+                                </button>
+                            }
+                        </div>
+                    </form>
+                }
+
+                <div class="bottom-copy">
+                    Don’t have an account?
+                    <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Create one here</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            if (input.type === "password") {
+                input.type = "text";
+                btn.textContent = "Hide";
+            } else {
+                input.type = "password";
+                btn.textContent = "Show";
+            }
+        }
+    </script>
 }

@@ -1,204 +1,941 @@
 @model List<CartItemViewModel>
+
 @{
     ViewData["Title"] = "Your Cart";
+    var grandTotal = Model?.Sum(item => item.Total) ?? 0m;
+    var totalItems = Model?.Sum(item => item.Quantity) ?? 0;
 }
 
 <style>
-    .quantity-controls {
+    .sd-cart-page {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .sd-cart-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        padding: 34px 30px;
+        background:
+            radial-gradient(circle at top right, rgba(255, 209, 102, 0.24), transparent 20%),
+            radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.14), transparent 24%),
+            linear-gradient(135deg, #111111 0%, #1d1d1f 58%, #2b2112 100%);
+        color: #fff;
+        box-shadow: 0 22px 55px rgba(17, 17, 17, 0.14);
+    }
+
+    .sd-cart-hero-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 24px;
+        align-items: center;
+    }
+
+    .sd-cart-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 193, 7, 0.14);
+        border: 1px solid rgba(255, 193, 7, 0.25);
+        color: #ffd75f;
+        font-weight: 700;
+        font-size: 0.92rem;
+        margin-bottom: 14px;
+    }
+
+    .sd-cart-title {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 1.04;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .sd-cart-title .accent {
+        color: #ffca28;
+    }
+
+    .sd-cart-copy {
+        color: rgba(255,255,255,0.82);
+        font-size: 1rem;
+        line-height: 1.75;
+        max-width: 620px;
+        margin-bottom: 0;
+    }
+
+    .sd-cart-hero-panel {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px;
+        padding: 22px;
+        backdrop-filter: blur(12px);
+    }
+
+    .sd-cart-hero-panel-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin-bottom: 12px;
+    }
+
+    .sd-cart-hero-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .sd-cart-stat {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 18px;
+        padding: 14px;
+    }
+
+    .sd-cart-stat-number {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .sd-cart-stat-copy {
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.78);
+        line-height: 1.55;
+    }
+
+    .sd-cart-layout {
+        display: grid;
+        grid-template-columns: 1.35fr 0.65fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .sd-cart-card,
+    .sd-summary-card,
+    .sd-empty-card {
+        background: #fff;
+        border: 1px solid #eee1cb;
+        border-radius: 28px;
+        box-shadow: 0 14px 30px rgba(17, 17, 17, 0.05);
+    }
+
+    .sd-cart-card {
+        overflow: hidden;
+    }
+
+    .sd-card-head {
+        padding: 22px 24px 16px;
+        border-bottom: 1px solid #f2e8d8;
+    }
+
+    .sd-card-kicker {
+        display: inline-block;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #c56b00;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .sd-card-title {
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin: 0 0 8px 0;
+    }
+
+    .sd-card-copy {
+        color: #6b7280;
+        line-height: 1.65;
+        margin: 0;
+    }
+
+    .sd-cart-items {
+        padding: 10px 18px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .sd-cart-item {
+        display: grid;
+        grid-template-columns: 92px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        border: 1px solid #f1e7d6;
+        border-radius: 22px;
+        padding: 14px;
+        background: #fffdf8;
+    }
+
+    .sd-cart-item-media {
+        width: 92px;
+        height: 92px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #fff3d8, #ffe9b0);
+        flex-shrink: 0;
+    }
+
+    .sd-cart-item-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .sd-cart-item-body {
+        min-width: 0;
+    }
+
+    .sd-item-name {
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 6px;
+    }
+
+    .sd-item-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .sd-item-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #fff4db;
+        border: 1px solid #f2dfb6;
+        color: #7a4b00;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .sd-qty-row {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 12px;
+        flex-wrap: wrap;
     }
-    .quantity-btn {
-        display: inline-block;
-        width: 30px;
-        height: 30px;
-        line-height: 28px;
-        text-align: center;
-        border: 1px solid #ddd;
+
+    .sd-qty-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid #eadfc9;
+        border-radius: 999px;
+        background: #fff;
+    }
+
+    .sd-qty-btn {
+        border: none;
+        width: 34px;
+        height: 34px;
         border-radius: 50%;
-        background-color: #f7f7f7;
+        background: #fff4db;
+        color: #5c3b00;
+        font-size: 1rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.18s ease;
         cursor: pointer;
-        font-weight: bold;
     }
-    .remove-btn {
+
+    .sd-qty-btn:hover {
+        background: #ffe8b2;
+    }
+
+    .sd-qty-value {
+        min-width: 26px;
+        text-align: center;
+        font-weight: 800;
+        color: #1f2937;
+    }
+
+    .sd-remove-btn {
+        border: none;
+        background: transparent;
         color: #dc3545;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0;
         cursor: pointer;
+    }
+
+    .sd-remove-btn:hover {
+        color: #b42318;
+    }
+
+    .sd-cart-item-side {
+        text-align: right;
+        min-width: 120px;
+    }
+
+    .sd-item-total-label {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+    }
+
+    .sd-item-total {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .sd-summary-card {
+        position: sticky;
+        top: 96px;
+        padding: 22px;
+    }
+
+    .sd-summary-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 14px;
+    }
+
+    .sd-summary-copy {
+        color: #6b7280;
+        line-height: 1.65;
+        margin-bottom: 18px;
+    }
+
+    .sd-summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .sd-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        font-size: 0.98rem;
+        color: #374151;
+    }
+
+    .sd-summary-row strong {
+        color: #111827;
+    }
+
+    .sd-summary-divider {
+        height: 1px;
+        background: #f0e6d5;
+        margin: 8px 0 12px;
+    }
+
+    .sd-summary-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 18px;
+    }
+
+    .sd-summary-note {
+        margin-bottom: 18px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: #fff8e8;
+        border: 1px solid #f5e1b7;
+        color: #7a4b00;
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .sd-summary-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .sd-btn-primary,
+    .sd-btn-secondary,
+    .sd-btn-danger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-decoration: none;
+        border: none;
+        width: 100%;
+        min-height: 54px;
+        border-radius: 18px;
+        font-weight: 800;
+        transition: all 0.18s ease;
+        cursor: pointer;
+    }
+
+    .sd-btn-primary {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(245, 158, 11, 0.25);
+    }
+
+    .sd-btn-primary:hover {
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .sd-btn-secondary {
+        background: #fff4db;
+        border: 1px solid #f2dfb6;
+        color: #1f2937;
+    }
+
+    .sd-btn-secondary:hover {
+        background: #ffefca;
+        color: #111827;
+    }
+
+    .sd-btn-danger {
+        background: #fff1f1;
+        border: 1px solid #f3c2c2;
+        color: #b42318;
+    }
+
+    .sd-btn-danger:hover {
+        background: #ffe3e3;
+        color: #912018;
+    }
+
+    .sd-empty-card {
+        padding: 34px 28px;
+        text-align: center;
+    }
+
+    .sd-empty-icon {
+        width: 84px;
+        height: 84px;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #fff3d8, #ffe9b0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: #c56b00;
+    }
+
+    .sd-empty-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 10px;
+    }
+
+    .sd-empty-copy {
+        max-width: 620px;
+        margin: 0 auto 22px;
+        color: #6b7280;
+        line-height: 1.75;
+        font-size: 1rem;
+    }
+
+    .sd-loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    @@media (max-width: 1100px) {
+        .sd-cart-hero-grid,
+        .sd-cart-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .sd-summary-card {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .sd-cart-hero {
+            padding: 28px 20px;
+            border-radius: 26px;
+        }
+
+        .sd-cart-title {
+            font-size: 2.2rem;
+        }
+
+        .sd-cart-hero-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .sd-cart-item {
+            grid-template-columns: 1fr;
+            text-align: left;
+        }
+
+        .sd-cart-item-media {
+            width: 100%;
+            max-width: 140px;
+            height: 110px;
+        }
+
+        .sd-cart-item-side {
+            text-align: left;
+            min-width: 0;
+        }
+
+        .sd-card-head,
+        .sd-summary-card,
+        .sd-empty-card {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        .sd-cart-items {
+            padding: 10px 12px 16px;
+        }
     }
 </style>
-
-<h1>Your Shopping Cart</h1>
-<hr />
-
-<!-- We wrap the whole cart display in a container div -->
-<div id="cart-container">
-    @if (Model.Any())
+@if (TempData["OrderError"] != null)
+{
+    <div class="alert alert-danger mb-3">
+        @TempData["OrderError"]
+    </div>
+}
+<div class="sd-cart-page">
+    @if (Model != null && Model.Any())
     {
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th style="width: 10%;">Item</th>
-                    <th style="width: 30%;"></th>
-                    <th style="width: 15%;">Price</th>
-                    <th style="width: 20%;">Quantity</th>
-                    <th style="width: 15%;">Total</th>
-                    <th style="width: 10%;"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>
-                            <img src="@item.ImageUrl" alt="@item.Name" style="width: 75px; height: 75px; object-fit: cover; border-radius: 8px;" />
-                        </td>
-                        <td>@item.Name</td>
-                        <td>R @item.UnitPrice.ToString("F2")</td>
-                        <td>
-                            <!-- Quantity Control Buttons -->
-                            <div class="quantity-controls">
-                                <span class="quantity-btn decrease-qty" data-item-id="@item.MenuItemId">-</span>
-                                <span class="fw-bold">@item.Quantity</span>
-                                <span class="quantity-btn increase-qty" data-item-id="@item.MenuItemId">+</span>
-                            </div>
-                        </td>
-                        <td><strong>R @item.Total.ToString("F2")</strong></td>
-                        <td>
-                            <!-- Remove Item Button -->
-                            <i class="fas fa-trash-alt remove-btn" data-item-id="@item.MenuItemId" title="Remove item"></i>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="5" class="text-end"><h5>Grand Total:</h5></td>
-                    <td><h5><strong>R @Model.Sum(item => item.Total).ToString("F2")</strong></h5></td>
-                </tr>
-            </tfoot>
-        </table>
+        <section class="sd-cart-hero">
+            <div class="sd-cart-hero-grid">
+                <div>
+                    <span class="sd-cart-kicker">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        Review your order before checkout
+                    </span>
 
-        <div class="d-flex justify-content-between mt-4">
-            <!-- Clear Cart Button -->
-            <button id="clear-cart-btn" class="btn btn-outline-danger">Clear Cart</button>
-            <!-- Place Order Button -->
-            <a asp-controller="Order" asp-action="PlaceOrder" class="btn btn-primary btn-lg">Place Order</a>
+                    <h1 class="sd-cart-title">
+                        Your cart is almost
+                        <span class="accent">ready to order.</span>
+                    </h1>
+
+                    <p class="sd-cart-copy">
+                        Update quantities, remove items, and review your total before placing your order.
+                        This is the next step toward a more complete Snack Dash ordering flow.
+                    </p>
+                </div>
+
+                <div class="sd-cart-hero-panel">
+                    <div class="sd-cart-hero-panel-title">Cart snapshot</div>
+
+                    <div class="sd-cart-hero-stats">
+                        <div class="sd-cart-stat">
+                            <div class="sd-cart-stat-number">@totalItems</div>
+                            <div class="sd-cart-stat-copy">Total item quantities currently in your cart.</div>
+                        </div>
+
+                        <div class="sd-cart-stat">
+                            <div class="sd-cart-stat-number">@Model.Count</div>
+                            <div class="sd-cart-stat-copy">Unique menu items selected in this order.</div>
+                        </div>
+
+                        <div class="sd-cart-stat">
+                            <div class="sd-cart-stat-number">R @grandTotal.ToString("F2")</div>
+                            <div class="sd-cart-stat-copy">Current cart total before the final order is placed.</div>
+                        </div>
+
+                        <div class="sd-cart-stat">
+                            <div class="sd-cart-stat-number">Fast</div>
+                            <div class="sd-cart-stat-copy">Quick controls for add, remove, update quantity, and clear cart.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="sd-cart-layout" id="cart-container">
+            <section class="sd-cart-card">
+                <div class="sd-card-head">
+                    <div class="sd-card-kicker">Cart Items</div>
+                    <h2 class="sd-card-title">Everything you’ve added so far</h2>
+                    <p class="sd-card-copy">
+                        Review items carefully before placing your order. You can increase quantities,
+                        decrease them, remove single items, or clear the full cart.
+                    </p>
+                </div>
+
+                <div class="sd-cart-items">
+                    @foreach (var item in Model)
+                    {
+                        <div class="sd-cart-item">
+                            <div class="sd-cart-item-media">
+                                <img src="@item.ImageUrl" alt="@item.Name" />
+                            </div>
+
+                            <div class="sd-cart-item-body">
+                                <div class="sd-item-name">@item.Name</div>
+
+                                <div class="sd-item-meta">
+                                    <span class="sd-item-chip">
+                                        <i class="fa-solid fa-tag"></i>
+                                        Unit Price: R @item.UnitPrice.ToString("F2")
+                                    </span>
+
+                                    <span class="sd-item-chip">
+                                        <i class="fa-solid fa-layer-group"></i>
+                                        Quantity: @item.Quantity
+                                    </span>
+                                </div>
+
+                                <div class="sd-qty-row">
+                                    <div class="sd-qty-control">
+                                        <button type="button"
+                                                class="sd-qty-btn decrease-qty"
+                                                data-item-id="@item.MenuItemId"
+                                                title="Decrease quantity">
+                                            −
+                                        </button>
+
+                                        <span class="sd-qty-value">@item.Quantity</span>
+
+                                        <button type="button"
+                                                class="sd-qty-btn increase-qty"
+                                                data-item-id="@item.MenuItemId"
+                                                title="Increase quantity">
+                                            +
+                                        </button>
+                                    </div>
+
+                                    <button type="button"
+                                            class="sd-remove-btn remove-btn"
+                                            data-item-id="@item.MenuItemId"
+                                            title="Remove item">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="sd-cart-item-side">
+                                <div class="sd-item-total-label">Item Total</div>
+                                <div class="sd-item-total">R @item.Total.ToString("F2")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <aside class="sd-summary-card">
+                <div class="sd-summary-title">Order Summary</div>
+                <p class="sd-summary-copy">
+                    A quick breakdown of your current cart before the final order step.
+                </p>
+
+                <div class="sd-summary-list">
+                    <div class="sd-summary-row">
+                        <span>Unique items</span>
+                        <strong>@Model.Count</strong>
+                    </div>
+
+                    <div class="sd-summary-row">
+                        <span>Total quantity</span>
+                        <strong>@totalItems</strong>
+                    </div>
+
+                    <div class="sd-summary-row">
+                        <span>Subtotal</span>
+                        <strong>R @grandTotal.ToString("F2")</strong>
+                    </div>
+                </div>
+
+                <div class="sd-summary-divider"></div>
+
+                <div class="sd-summary-total">
+                    <span>Grand Total</span>
+                    <span>R @grandTotal.ToString("F2")</span>
+                </div>
+
+                <div class="sd-summary-note">
+                    This is a polished cart step for now. After this, we’ll strengthen the full order placement,
+                    success messaging, and customer order history flow.
+                </div>
+
+                <div class="sd-summary-actions">
+                    <form asp-controller="Order" asp-action="PlaceOrder" method="post" class="m-0">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Delivery Address</label>
+                            <textarea name="deliveryAddress"
+                                    id="deliveryAddress"
+                                    class="form-control"
+                                    rows="3"
+                                    required
+                                    placeholder="Example: 123 Madiba Street, Pretoria Central, Pretoria"></textarea>
+                            <div class="form-text">
+                                This address will be saved on this order only.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Phone Number</label>
+                            <input type="text"
+                                name="customerPhoneNumber"
+                                class="form-control"
+                                placeholder="Example: 071 234 5678" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Delivery Instructions</label>
+                            <textarea name="deliveryInstructions"
+                                    class="form-control"
+                                    rows="2"
+                                    placeholder="Example: Call when outside, gate code, security instructions, etc."></textarea>
+                        </div>
+
+                        <input type="hidden" name="deliveryLatitude" id="deliveryLatitude" />
+                        <input type="hidden" name="deliveryLongitude" id="deliveryLongitude" />
+
+                        <button type="button" id="use-location-btn" class="sd-btn-secondary mb-3">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            Use My Current Location
+                        </button>
+
+                        <div id="location-status" class="text-muted small mb-3"></div>
+
+                        <button type="submit" class="sd-btn-primary">
+                            <i class="fa-solid fa-bag-shopping"></i>
+                            Place Order
+                        </button>
+                    </form>
+
+                    <a asp-controller="Home" asp-action="Index" class="sd-btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Continue Shopping
+                    </a>
+
+                    <button id="clear-cart-btn" type="button" class="sd-btn-danger">
+                        <i class="fa-solid fa-trash"></i>
+                        Clear Cart
+                    </button>
+
+                </div>
+            </aside>
         </div>
     }
     else
     {
-        <p>Your cart is empty. <a asp-controller="Home" asp-action="Index">Continue shopping</a>.</p>
+        <section class="sd-empty-card">
+            <div class="sd-empty-icon">
+                <i class="fa-solid fa-cart-shopping"></i>
+            </div>
+
+            <h1 class="sd-empty-title">Your cart is empty</h1>
+            <p class="sd-empty-copy">
+                You haven’t added any items yet. Browse restaurants, explore menus, and start building
+                your order so Snack Dash feels like a real customer journey from discovery to checkout.
+            </p>
+
+            <div class="d-flex justify-content-center flex-wrap gap-3">
+                <a asp-controller="Home" asp-action="Index" class="sd-btn-primary" style="width:auto; padding:0 22px;">
+                    <i class="fa-solid fa-utensils"></i>
+                    Browse Restaurants
+                </a>
+
+                <a asp-controller="Search" asp-action="Index" class="sd-btn-secondary" style="width:auto; padding:0 22px;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    Search Food
+                </a>
+            </div>
+        </section>
     }
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
 
-            // Function to make API calls
-            async function postToApi(url) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    if (!response.ok) {
-                        throw new Error('API call failed');
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+
+
+            const useLocationButton = document.getElementById("use-location-btn");
+            const latitudeInput = document.getElementById("deliveryLatitude");
+            const longitudeInput = document.getElementById("deliveryLongitude");
+            const locationStatus = document.getElementById("location-status");
+            const deliveryAddressInput = document.getElementById("deliveryAddress");
+
+            if (useLocationButton) {
+                useLocationButton.addEventListener("click", function () {
+                    if (!navigator.geolocation) {
+                        locationStatus.textContent = "Your browser does not support location capture.";
+                        return;
                     }
-                    // After a successful action, we refresh the page to see the changes.
-                    // A more advanced solution would use AJAX to redraw just the cart.
-                    location.reload(); 
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                }
+
+                    locationStatus.textContent = "Getting your location...";
+
+                    navigator.geolocation.getCurrentPosition(
+                        async function (position) {
+                            const latitude = position.coords.latitude.toFixed(6);
+                            const longitude = position.coords.longitude.toFixed(6);
+
+                            latitudeInput.value = latitude;
+                            longitudeInput.value = longitude;
+
+                            locationStatus.textContent = "Location captured. Finding your address...";
+
+                            try {
+                                const response = await fetch(`/api/geocoding/reverse?latitude=${latitude}&longitude=${longitude}`);
+
+                                if (!response.ok) {
+                                    locationStatus.textContent =
+                                        "Location captured, but we could not auto-fill the address. Please type it manually.";
+                                    return;
+                                }
+
+                                const result = await response.json();
+
+                                if (result.success && result.address) {
+                                    deliveryAddressInput.value = result.address;
+
+                                    locationStatus.textContent =
+                                        "Location and address captured successfully. Please check the address before placing your order.";
+                                } else {
+                                    locationStatus.textContent =
+                                        "Location captured, but no address was found. Please type it manually.";
+                                }
+                            } catch {
+                                locationStatus.textContent =
+                                    "Location captured, but we could not auto-fill the address. Please type it manually.";
+                            }
+                        },
+                        function () {
+                            locationStatus.textContent =
+                                "We could not capture your location. You can still place the order using your typed address.";
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                });
             }
 
-            // Increase quantity
-            document.querySelectorAll('.increase-qty').forEach(button => {
-                button.addEventListener('click', function() {
-                    const itemId = this.dataset.itemId;
-                    postToApi(`/api/Cart/AddToCart/${itemId}`);
+            async function postToApi(url) {
+                const response = await fetch(url, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
                 });
-            });
 
-            // Decrease quantity
-            document.querySelectorAll('.decrease-qty').forEach(button => {
-                button.addEventListener('click', function() {
+                let payload = null;
+                const contentType = response.headers.get("content-type") || "";
+
+                if (contentType.includes("application/json")) {
+                    payload = await response.json();
+                } else {
+                    const text = await response.text();
+                    payload = { message: text };
+                }
+
+                if (!response.ok) {
+                    throw new Error(payload?.message || `Request failed with status ${response.status}`);
+                }
+
+                if (window.refreshCartBadge) {
+                    await window.refreshCartBadge();
+                }
+
+                document.dispatchEvent(new CustomEvent("cart:updated"));
+                return payload;
+            }
+
+            document.querySelectorAll(".increase-qty").forEach(button => {
+                button.addEventListener("click", async function (e) {
+                    e.preventDefault();
+
                     const itemId = this.dataset.itemId;
-                    postToApi(`/api/Cart/RemoveFromCart/${itemId}`);
-                });
-            });
 
-            // Remove item completely
-            document.querySelectorAll('.remove-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to remove this item from your cart?')) {
-                        const itemId = this.dataset.itemId;
-                        postToApi(`/api/Cart/RemoveItemCompletely/${itemId}`);
+                    try {
+                        await postToApi(`/api/Cart/AddToCart/${itemId}`);
+                        location.reload();
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message || "Could not increase item quantity.");
                     }
                 });
             });
 
-            // Clear the entire cart
-            const clearCartBtn = document.getElementById('clear-cart-btn');
-            if (clearCartBtn) {
-                clearCartBtn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to empty your entire cart?')) {
+            document.querySelectorAll(".decrease-qty").forEach(button => {
+                button.addEventListener("click", async function (e) {
+                    e.preventDefault();
 
-                        postToApi('/api/Cart/ClearCart');
+                    const itemId = this.dataset.itemId;
+
+                    try {
+                        await postToApi(`/api/Cart/RemoveFromCart/${itemId}`);
+                        location.reload();
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message || "Could not decrease item quantity.");
+                    }
+                });
+            });
+
+            document.querySelectorAll(".remove-btn").forEach(button => {
+                button.addEventListener("click", async function (e) {
+                    e.preventDefault();
+
+                    const itemId = this.dataset.itemId;
+
+                    if (!confirm("Remove this item from your cart?")) {
+                        return;
+                    }
+
+                    try {
+                        await postToApi(`/api/Cart/RemoveItemCompletely/${itemId}`);
+                        location.reload();
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message || "Could not remove item.");
+                    }
+                });
+            });
+
+            const clearCartBtn = document.getElementById("clear-cart-btn");
+            if (clearCartBtn) {
+                clearCartBtn.addEventListener("click", async function (e) {
+                    e.preventDefault();
+
+                    if (!confirm("Are you sure you want to clear your cart?")) {
+                        return;
+                    }
+
+                    try {
+                        const result = await postToApi("/api/Cart/ClearCart");
+                        console.log("Clear cart result:", result);
+                        location.reload();
+                    } catch (error) {
+                        console.error("Clear cart failed:", error);
+                        alert(error.message || "Could not clear the cart.");
                     }
                 });
             }
         });
     </script>
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

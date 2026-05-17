@@ -1,104 +1,187 @@
+using FoodDeliveryApp.Constants;
 using FoodDeliveryApp.Data;
 using FoodDeliveryApp.Models;
+using FoodDeliveryApp.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Adding services for session state. The shopping cart depends on this.
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    // The session cookie will be valid for 20 minutes of inactivity.
     options.IdleTimeout = TimeSpan.FromMinutes(20);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-// Register HttpContextAccessor. This allows our service to access the session.
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ShoppingCartService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
-// Register our new ShoppingCartService.
-// 'AddScoped' means a new instance of the service is created for each web request.
-builder.Services.AddScoped<FoodDeliveryApp.Services.ShoppingCartService>();
-
-// Configure EF Core with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add ASP.NET Core Identity with ApplicationUser
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
-    // Sign In Settings
-    // This requires users to confirm their email before they can log in.
-    // Great for preventing fake accounts. We'll set it to 'true'.
-    options.SignIn.RequireConfirmedAccount = true; 
+    options.SignIn.RequireConfirmedAccount = false;
 
-    // Password Strength Settings - Let's enforce strong passwords
-    // This directly implements your "Password Strength Meter" requirement from a backend perspective.
-    options.Password.RequireDigit = true;           // Must have a number (0-9)
-    options.Password.RequireLowercase = true;       // Must have a lowercase letter (a-z)
-    options.Password.RequireUppercase = true;       // Must have an uppercase letter (A-Z)
-    options.Password.RequireNonAlphanumeric = true; // Must have a special character (e.g., @, #, !)
-    options.Password.RequiredLength = 8;            // Must be at least 8 characters long
-    options.Password.RequiredUniqueChars = 1;       // At least 1 unique character
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequiredUniqueChars = 1;
 
-    // C. User Lockout Settings - This implements "Rate Limiting / Login Attempt Throttling"
-    // Prevents brute-force attacks by locking an account after too many failed attempts.
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5); // Lock account for 5 minutes
-    options.Lockout.MaxFailedAccessAttempts = 5;                      // Lock out after 5 failed login attempts
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
 
-    // D. User Settings - Basic rules for usernames/emails
     options.User.AllowedUserNameCharacters =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
-    options.User.RequireUniqueEmail = true; // Ensures every user has a unique email address
+    options.User.RequireUniqueEmail = true;
 })
+.AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// Social Login - Let's add Google as an example
-// This requires a NuGet package: Microsoft.AspNetCore.Authentication.Google
-// NOTE: You will need to get a Client ID and Client Secret from the Google Cloud Console.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AppRoles.AdminPolicy, policy =>
+        policy.RequireRole(AppRoles.Admin));
+
+    options.AddPolicy(AppRoles.CustomerPolicy, policy =>
+        policy.RequireRole(AppRoles.Customer));
+
+    options.AddPolicy(AppRoles.DriverPolicy, policy =>
+        policy.RequireRole(AppRoles.Driver));
+});
+
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
-        // These settings are read from your appsettings.json or User Secrets
         IConfigurationSection googleAuthNSection = builder.Configuration.GetSection("Authentication:Google");
         options.ClientId = googleAuthNSection["ClientId"];
         options.ClientSecret = googleAuthNSection["ClientSecret"];
     });
 
-// Add MVC support (controllers + views + razor pages for Identity UI)
 builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages(); // Required for Identity scaffolded UI
+builder.Services.AddRazorPages();
 
-// Swagger (from your template)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
-//Enable Swagger in development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Middleware pipeline
-//app.UseHttpsRedirection();
-app.UseSession();
-app.UseStaticFiles(); // Required for serving Identity UI and CSS
+// Keep this commented for now to avoid breaking your current local HTTP testing.
+// We will enable HTTPS properly later when we start geolocation/map work.
+// app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map routes for MVC and Identity UI
+app.MapControllers();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapRazorPages(); // Required for Identity UI pages (login, register, etc.)
+app.MapRazorPages();
+
+await SeedRolesAndAdminAsync(app);
 
 app.Run();
+
+static async Task SeedRolesAndAdminAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+    var roles = new[]
+    {
+        AppRoles.Admin,
+        AppRoles.Customer,
+        AppRoles.Driver
+    };
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
+    var adminEmail = configuration["AdminSeed:Email"];
+    var adminPassword = configuration["AdminSeed:Password"];
+    var adminFullName = configuration["AdminSeed:FullName"] ?? "Snack Dash Admin";
+
+    if (!string.IsNullOrWhiteSpace(adminEmail))
+    {
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+        if (adminUser == null)
+        {
+            if (!string.IsNullOrWhiteSpace(adminPassword))
+            {
+                adminUser = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FullName = adminFullName,
+                    EmailConfirmed = true
+                };
+
+                var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+
+                if (createResult.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, AppRoles.Admin);
+                }
+            }
+        }
+        else
+        {
+            if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Admin))
+            {
+                await userManager.AddToRoleAsync(adminUser, AppRoles.Admin);
+            }
+        }
+    }
+
+    await BackfillCustomerRoleForExistingUsersAsync(userManager);
+}
+
+static async Task BackfillCustomerRoleForExistingUsersAsync(UserManager<ApplicationUser> userManager)
+{
+    var users = await userManager.Users.ToListAsync();
+
+    foreach (var user in users)
+    {
+        var isAdmin = await userManager.IsInRoleAsync(user, AppRoles.Admin);
+        var isDriver = await userManager.IsInRoleAsync(user, AppRoles.Driver);
+        var isCustomer = await userManager.IsInRoleAsync(user, AppRoles.Customer);
+
+        if (isAdmin || isDriver || isCustomer)
+        {
+            continue;
+        }
+
+        await userManager.AddToRoleAsync(user, AppRoles.Customer);
+    }
+}

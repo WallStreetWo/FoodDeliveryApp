@@ -2,8 +2,6 @@ using FoodDeliveryApp.Data;
 using FoodDeliveryApp.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace FoodDeliveryApp.Controllers
 {
@@ -11,7 +9,6 @@ namespace FoodDeliveryApp.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        // Constructor to get the database context via dependency injection
         public HomeController(ApplicationDbContext context)
         {
             _context = context;
@@ -19,20 +16,35 @@ namespace FoodDeliveryApp.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // Create a new ViewModel to hold our data
+            if (!(User?.Identity?.IsAuthenticated ?? false))
+            {
+                return Redirect("/Identity/Account/Login");
+            }
+
+            var categories = await _context.Categories
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            var featuredRestaurants = await _context.Restaurants
+                .AsNoTracking()
+                .OrderBy(r => r.Name)
+                .Take(8)
+                .ToListAsync();
+
+            var topRatedRestaurants = await _context.Restaurants
+                .AsNoTracking()
+                .OrderByDescending(r => r.RestaurantId)
+                .Take(8)
+                .ToListAsync();
+
             var viewModel = new HomeViewModel
             {
-                // Get all categories from the database
-                Categories = await _context.Categories.ToListAsync(),
-                
-                // Get some restaurants to feature (e.g., the first 8)
-                FeaturedRestaurants = await _context.Restaurants.Take(8).ToListAsync(),
-                
-                // Get the top-rated restaurants (we'll simulate this for now)
-                TopRatedRestaurants = await _context.Restaurants.OrderByDescending(r => r.RestaurantId).Take(8).ToListAsync()
+                Categories = categories,
+                FeaturedRestaurants = featuredRestaurants,
+                TopRatedRestaurants = topRatedRestaurants
             };
 
-            // Pass the fully populated ViewModel to the View
             return View(viewModel);
         }
     }

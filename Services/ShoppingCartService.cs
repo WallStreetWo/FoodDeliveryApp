@@ -1,8 +1,6 @@
 using FoodDeliveryApp.Models;
 using FoodDeliveryApp.ViewModels;
 using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 
 namespace FoodDeliveryApp.Services
@@ -10,43 +8,47 @@ namespace FoodDeliveryApp.Services
     public class ShoppingCartService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private ISession Session => _httpContextAccessor.HttpContext.Session;
         private const string CartSessionKey = "ShoppingCart";
+
+        private ISession Session =>
+            _httpContextAccessor.HttpContext?.Session
+            ?? throw new InvalidOperationException("Session is not available.");
 
         public ShoppingCartService(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // Method to get the current list of items from the session
+        // Get all cart items from session
         public List<CartItemViewModel> GetCartItems()
         {
             var cartJson = Session.GetString(CartSessionKey);
-            if (string.IsNullOrEmpty(cartJson))
+
+            if (string.IsNullOrWhiteSpace(cartJson))
             {
                 return new List<CartItemViewModel>();
             }
-            return JsonSerializer.Deserialize<List<CartItemViewModel>>(cartJson);
+
+            return JsonSerializer.Deserialize<List<CartItemViewModel>>(cartJson)
+                   ?? new List<CartItemViewModel>();
         }
 
-        // Method to save the list of items back to the session
+        // Save all cart items back into session
         private void SaveCartItems(List<CartItemViewModel> cartItems)
         {
             var cartJson = JsonSerializer.Serialize(cartItems);
             Session.SetString(CartSessionKey, cartJson);
         }
 
-        // Public method to add an item to the cart
+        // Add a menu item to the cart
         public void AddToCart(MenuItem item)
         {
             var cartItems = GetCartItems();
 
-            // Check if the item is already in the cart
             var cartItem = cartItems.FirstOrDefault(ci => ci.MenuItemId == item.MenuItemId);
 
             if (cartItem == null)
             {
-                // If not, add it as a new item
                 cartItems.Add(new CartItemViewModel
                 {
                     MenuItemId = item.MenuItemId,
@@ -58,38 +60,40 @@ namespace FoodDeliveryApp.Services
             }
             else
             {
-                // If it is, just increment the quantity
                 cartItem.Quantity++;
             }
 
             SaveCartItems(cartItems);
         }
 
-        // Removes one instance of an item. If quantity is 1, removes the item completely.
+        // Remove one quantity of an item.
+        // If quantity reaches zero, remove the item completely.
         public int RemoveFromCart(int menuItemId)
         {
             var cartItems = GetCartItems();
             var cartItem = cartItems.FirstOrDefault(ci => ci.MenuItemId == menuItemId);
 
-            var remainingQuatity = 0;
+            var remainingQuantity = 0;
 
             if (cartItem != null)
             {
                 if (cartItem.Quantity > 1)
                 {
                     cartItem.Quantity--;
-                    remainingQuatity = cartItem.Quantity;
+                    remainingQuantity = cartItem.Quantity;
                 }
                 else
                 {
                     cartItems.Remove(cartItem);
                 }
+
                 SaveCartItems(cartItems);
             }
-            return remainingQuatity;
+
+            return remainingQuantity;
         }
 
-        // Completely removes an item from the cart, regardless of quantity.
+        // Remove an item completely from the cart
         public void RemoveItemCompletely(int menuItemId)
         {
             var cartItems = GetCartItems();
@@ -102,19 +106,19 @@ namespace FoodDeliveryApp.Services
             }
         }
 
-        // Empties the entire shopping cart
+        // Clear the whole cart
         public void ClearCart()
         {
             SaveCartItems(new List<CartItemViewModel>());
         }
 
-        // Calculates the total number of items in the cart.
+        // Get total quantity of items in the cart
         public int GetCartCount()
         {
             return GetCartItems().Sum(item => item.Quantity);
         }
 
-        // Calculates the total price of all items in the cart.
+        // Get total cart value
         public decimal GetCartTotal()
         {
             return GetCartItems().Sum(item => item.Total);

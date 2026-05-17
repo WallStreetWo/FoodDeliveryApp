@@ -1,0 +1,246 @@
+@model FoodDeliveryApp.Models.Order
+
+@{
+    ViewData["Title"] = "Order Details";
+    var statuses = ViewBag.AllowedStatuses as string[] ?? Array.Empty<string>();
+    var drivers = ViewBag.AvailableDrivers as List<FoodDeliveryApp.Models.ApplicationUser> ?? new List<FoodDeliveryApp.Models.ApplicationUser>();
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="mb-2">Order #@Model.OrderId</h1>
+            <p class="text-muted mb-0">Admin view of customer order details.</p>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-controller="OrderTracking" asp-action="Track" asp-route-id="@Model.OrderId" class="btn btn-primary">
+                Track Order
+            </a>
+
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                Back to Orders
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["AdminOrderSuccess"] != null)
+    {
+        <div class="alert alert-success">@TempData["AdminOrderSuccess"]</div>
+    }
+
+    @if (TempData["AdminOrderError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["AdminOrderError"]</div>
+    }
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h5>Customer</h5>
+                            <div><strong>Name:</strong> @(Model.User?.FullName ?? "Customer")</div>
+                            <div><strong>Email:</strong> @(Model.User?.Email ?? "")</div>
+                            <div><strong>Address:</strong> @(Model.User?.Address ?? "No address")</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5>Order</h5>
+                            <div><strong>Restaurant:</strong> @(Model.Restaurant?.Name ?? "Unknown Restaurant")</div>
+                            <div><strong>Status:</strong> @Model.Status</div>
+                            <div><strong>Placed:</strong> @Model.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                            <div><strong>Total:</strong> R @Model.TotalAmount.ToString("F2")</div>
+                            <div>
+                                <strong>Driver:</strong>
+                                @if (Model.Driver != null)
+                                {
+                                    <span>@(Model.Driver.FullName ?? Model.Driver.Email)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not assigned</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <h5>Delivery</h5>
+
+                        <div><strong>Address:</strong> @(Model.DeliveryAddress ?? "No delivery address captured")</div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.CustomerPhoneNumber))
+                        {
+                            <div><strong>Phone:</strong> @Model.CustomerPhoneNumber</div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.DeliveryInstructions))
+                        {
+                            <div><strong>Instructions:</strong> @Model.DeliveryInstructions</div>
+                        }
+
+                        @if (Model.DeliveryLatitude.HasValue && Model.DeliveryLongitude.HasValue)
+                        {
+                            <div><strong>Coordinates:</strong> @Model.DeliveryLatitude, @Model.DeliveryLongitude</div>
+                        }
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <form asp-action="UpdateStatus" method="post" class="d-flex gap-2 flex-wrap">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" name="id" value="@Model.OrderId" />
+                        <input type="hidden" name="returnToDetails" value="true" />
+
+                        <select name="status" class="form-select" style="max-width: 260px;">
+                            @foreach (var s in statuses)
+                            {
+                                <option value="@s" selected="@(Model.Status == s ? "selected" : null)">@s</option>
+                            }
+                        </select>
+
+                        <button type="submit" class="btn btn-dark">Update Status</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">Driver Assignment</h5>
+
+                    @if (!drivers.Any())
+                    {
+                        <div class="alert alert-warning mb-0">
+                            No driver users found yet. Create or update a user with the Driver role first.
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="AssignDriver" method="post" class="mb-3">
+                            @Html.AntiForgeryToken()
+
+                            <input type="hidden" name="id" value="@Model.OrderId" />
+
+                            <div class="mb-3">
+                                <label class="form-label">Select Driver</label>
+                                <select name="driverId" class="form-select">
+                                    <option value="">-- Select driver --</option>
+
+                                    @foreach (var driver in drivers)
+                                    {
+                                        var label = string.IsNullOrWhiteSpace(driver.FullName)
+                                            ? driver.Email
+                                            : $"{driver.FullName} ({driver.Email})";
+
+                                        <option value="@driver.Id" selected="@(Model.DriverId == driver.Id ? "selected" : null)">
+                                            @label
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                Assign Driver
+                            </button>
+                        </form>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.DriverId))
+                        {
+                            <form asp-action="UnassignDriver" method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden" name="id" value="@Model.OrderId" />
+
+                                <button type="submit" class="btn btn-outline-danger">
+                                    Unassign Driver
+                                </button>
+                            </form>
+                        }
+                    }
+
+                    <div class="text-muted small mt-3">
+                        Assigning a driver will move the order to <strong>Driver assigned</strong> if the order is still before that stage.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <h5 class="mb-3">Order Items</h5>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.OrderItems)
+                        {
+                            <tr>
+                                <td>@(item.MenuItem?.Name ?? "Unknown Item")</td>
+                                <td>@item.Quantity</td>
+                                <td>R @item.UnitPrice.ToString("F2")</td>
+                                <td>R @item.Total.ToString("F2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <h5 class="mb-3">Status History</h5>
+
+            @if (Model.StatusHistory == null || !Model.StatusHistory.Any())
+            {
+                <div class="alert alert-info mb-0">
+                    No status history has been recorded for this order yet.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Changed By</th>
+                                <th>Changed At</th>
+                                <th>Comment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var history in Model.StatusHistory)
+                            {
+                                <tr>
+                                    <td>@history.Status</td>
+                                    <td>
+                                        @(history.ChangedByUser?.FullName
+                                            ?? history.ChangedByUser?.Email
+                                            ?? "System")
+                                    </td>
+                                    <td>@history.ChangedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                                    <td>@(history.Comment ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

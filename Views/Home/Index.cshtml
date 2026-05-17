@@ -1,98 +1,829 @@
 @model HomeViewModel
 @using FoodDeliveryApp.ViewModels
+@using FoodDeliveryApp.Constants
+
 @{
     ViewData["Title"] = "Home";
+    var isAdmin = User.IsInRole(AppRoles.Admin);
 }
 
 <style>
-    /* All of your existing CSS is perfect, no changes needed here. */
-    .home-container { font-family: Arial, sans-serif; }
-    .main-header { display: flex; align-items: center; padding: 1rem 0; border-bottom: 1px solid #eee; }
-    .logo { font-size: 24px; font-weight: bold; }
-    .search-bar { flex-grow: 1; margin: 0 2rem; position: relative; }
-    .search-bar input { width: 100%; padding: 0.75rem; padding-left: 2.5rem; border: 1px solid #e0e0e0; border-radius: 50px; background-color: #f5f5f5; }
-    .search-bar .fa-search { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #555; }
-    .category-section { padding: 1.5rem 0; display: flex; overflow-x: auto; gap: 2rem; scrollbar-width: none; }
-    .category-section::-webkit-scrollbar { display: none; }
-    .category-item { text-align: center; cursor: pointer; flex-shrink: 0; }
-    .category-item img { width: 60px; height: 60px; object-fit: contain; transition: transform 0.2s; }
-    .category-item p { margin-top: 0.5rem; font-weight: 500; }
-    .category-item:hover img { transform: scale(1.1); }
-    .restaurant-row { margin-top: 2rem; }
-    .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .row-header h2 { font-size: 22px; }
-    .restaurant-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-    .restaurant-card { text-decoration: none; color: inherit; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
-    .restaurant-card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .restaurant-card img { width: 100%; height: 160px; object-fit: cover; }
-    .card-body { padding: 1rem; }
-    .card-body h5 { font-weight: bold; margin-bottom: 0.25rem; }
-    .card-body p { color: #666; font-size: 0.9rem; }
+    .sd-home {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .sd-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 34px;
+        padding: 44px 34px;
+        background:
+            radial-gradient(circle at top right, rgba(255, 209, 102, 0.28), transparent 20%),
+            radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.18), transparent 22%),
+            linear-gradient(135deg, #111111 0%, #1d1d1f 58%, #2b2112 100%);
+        color: #fff;
+        box-shadow: 0 24px 60px rgba(17, 17, 17, 0.16);
+    }
+
+    .sd-hero::after {
+        content: "";
+        position: absolute;
+        right: -60px;
+        bottom: -70px;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.06);
+        filter: blur(10px);
+        pointer-events: none;
+    }
+
+    .sd-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 24px;
+        align-items: center;
+    }
+
+    .sd-hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 193, 7, 0.14);
+        border: 1px solid rgba(255, 193, 7, 0.25);
+        color: #ffd75f;
+        font-weight: 700;
+        font-size: 0.92rem;
+        margin-bottom: 16px;
+    }
+
+    .sd-hero-title {
+        font-size: clamp(2.2rem, 4vw, 4rem);
+        line-height: 1.02;
+        font-weight: 800;
+        margin-bottom: 14px;
+        max-width: 680px;
+    }
+
+    .sd-hero-title .accent {
+        color: #ffca28;
+    }
+
+    .sd-hero-copy {
+        color: rgba(255,255,255,0.82);
+        font-size: 1.03rem;
+        line-height: 1.8;
+        max-width: 640px;
+        margin-bottom: 26px;
+    }
+
+    .sd-hero-search {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 14px;
+        border-radius: 24px;
+        backdrop-filter: blur(12px);
+        max-width: 720px;
+    }
+
+    .sd-search-form {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .sd-search-input-wrap {
+        flex: 1 1 340px;
+        position: relative;
+    }
+
+    .sd-search-input-wrap i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+
+    .sd-search-input {
+        width: 100%;
+        height: 58px;
+        border: none;
+        outline: none;
+        border-radius: 18px;
+        background: #fff;
+        padding: 0 16px 0 46px;
+        font-size: 1rem;
+        color: #1f2937;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+    }
+
+    .sd-search-button {
+        height: 58px;
+        border: none;
+        border-radius: 18px;
+        padding: 0 22px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(245, 158, 11, 0.25);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .sd-search-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(245, 158, 11, 0.32);
+    }
+
+    .sd-hero-panel {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 28px;
+        padding: 24px;
+        backdrop-filter: blur(14px);
+    }
+
+    .sd-hero-panel-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin-bottom: 14px;
+    }
+
+    .sd-hero-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    .sd-stat {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px;
+        padding: 16px;
+    }
+
+    .sd-stat-number {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .sd-stat-copy {
+        font-size: 0.92rem;
+        color: rgba(255,255,255,0.78);
+        line-height: 1.55;
+    }
+
+    .sd-panel-empty {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .sd-panel-empty-copy {
+        color: rgba(255,255,255,0.82);
+        line-height: 1.7;
+        font-size: 0.96rem;
+        margin: 0;
+    }
+
+    .sd-panel-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .sd-panel-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        border-radius: 999px;
+        padding: 11px 16px;
+        font-weight: 800;
+        transition: all 0.18s ease;
+    }
+
+    .sd-panel-btn.primary {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(245, 158, 11, 0.25);
+    }
+
+    .sd-panel-btn.primary:hover {
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .sd-panel-btn.secondary {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.14);
+        color: #fff;
+    }
+
+    .sd-panel-btn.secondary:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.12);
+    }
+
+    .sd-section {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .sd-section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .sd-section-kicker {
+        display: inline-block;
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #c56b00;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .sd-section-title {
+        font-size: clamp(1.45rem, 2.5vw, 2rem);
+        font-weight: 800;
+        color: #1a1a1a;
+        margin: 0;
+    }
+
+    .sd-section-copy {
+        color: #6b7280;
+        margin: 0;
+        line-height: 1.65;
+        max-width: 720px;
+    }
+
+    .sd-link-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: #1f2937;
+        background: #fff4db;
+        border: 1px solid #f2dfb6;
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        transition: all 0.18s ease;
+    }
+
+    .sd-link-chip:hover {
+        background: #ffefca;
+        color: #111827;
+    }
+
+    .sd-category-row {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+    }
+
+    .sd-category-row::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .sd-category-row::-webkit-scrollbar-thumb {
+        background: #eadfc9;
+        border-radius: 999px;
+    }
+
+    .sd-category-card {
+        min-width: 130px;
+        max-width: 130px;
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        border: 1px solid #eee1cb;
+        border-radius: 24px;
+        padding: 16px 14px;
+        text-align: center;
+        box-shadow: 0 10px 24px rgba(17, 17, 17, 0.04);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        flex-shrink: 0;
+    }
+
+    .sd-category-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 30px rgba(17, 17, 17, 0.08);
+        border-color: #f0cc84;
+    }
+
+    .sd-category-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 10px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #fff8eb, #fff0d2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .sd-category-icon img {
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+    }
+
+    .sd-category-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #222;
+        line-height: 1.35;
+    }
+
+    .sd-restaurant-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .sd-restaurant-card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        border: 1px solid #eee1cb;
+        border-radius: 26px;
+        overflow: hidden;
+        box-shadow: 0 14px 30px rgba(17, 17, 17, 0.05);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        height: 100%;
+    }
+
+    .sd-restaurant-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 36px rgba(17, 17, 17, 0.10);
+        border-color: #f0cc84;
+    }
+
+    .sd-restaurant-media {
+        position: relative;
+        height: 190px;
+        background: linear-gradient(135deg, #fff3d8, #ffe9b0);
+        overflow: hidden;
+    }
+
+    .sd-restaurant-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .sd-restaurant-badge {
+        position: absolute;
+        left: 14px;
+        top: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(17,17,17,0.74);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        backdrop-filter: blur(10px);
+    }
+
+    .sd-card-body {
+        padding: 18px 18px 20px;
+    }
+
+    .sd-card-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+        color: #1a1a1a;
+    }
+
+    .sd-card-copy {
+        color: #6b7280;
+        font-size: 0.95rem;
+        line-height: 1.65;
+        margin-bottom: 16px;
+        min-height: 48px;
+    }
+
+    .sd-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .sd-card-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #fff5de;
+        border: 1px solid #f3dfb4;
+        color: #7a4b00;
+        font-size: 0.84rem;
+        font-weight: 700;
+    }
+
+    .sd-card-cta {
+        color: #111827;
+        font-weight: 800;
+        font-size: 0.92rem;
+    }
+
+    .sd-empty {
+        background: #fff;
+        border: 1px dashed #e7d7b6;
+        border-radius: 24px;
+        padding: 28px 22px;
+        color: #6b7280;
+        text-align: center;
+        line-height: 1.7;
+    }
+
+    .sd-empty.compact {
+        padding: 18px 20px;
+    }
+
+    .sd-empty-actions {
+        margin-top: 14px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .sd-empty-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-weight: 800;
+        background: #fff4db;
+        border: 1px solid #f2dfb6;
+        color: #1f2937;
+    }
+
+    .sd-empty-btn:hover {
+        background: #ffefca;
+        color: #111827;
+    }
+
+    @@media (max-width: 1100px) {
+        .sd-hero-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .sd-hero {
+            padding: 30px 20px;
+            border-radius: 28px;
+        }
+
+        .sd-hero-title {
+            font-size: 2.2rem;
+        }
+
+        .sd-hero-copy {
+            font-size: 0.98rem;
+        }
+
+        .sd-search-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .sd-search-button {
+            width: 100%;
+        }
+
+        .sd-hero-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .sd-restaurant-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
-<div class="home-container">
-    <!-- Header with Logo and Search Bar -->
-    <div class="main-header">
-        <div class="logo">Snack Dash</div>
-        <form asp-controller="Search" asp-action="Index" method="get" class="search-bar">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search restaurants or dishes" name="searchString" value="@ViewData["CurrentFilter"]" />
-        </form>
-    </div>
+<div class="sd-home">
+    <section class="sd-hero">
+        <div class="sd-hero-grid">
+            <div>
+                <span class="sd-hero-kicker">
+                    <i class="fa-solid fa-bolt"></i>
+                    Order faster. Browse smarter. Eat happier.
+                </span>
 
-    <!-- Category Icons -->
-    <div class="category-section">
-        @foreach (var category in Model.Categories)
+                <h1 class="sd-hero-title">
+                    Discover your next favourite meal with
+                    <span class="accent">Snack Dash.</span>
+                </h1>
+
+                <p class="sd-hero-copy">
+                    Browse top restaurants, explore menu categories, and move from search to checkout
+                    with a cleaner, more modern food ordering experience inspired by real delivery platforms.
+                </p>
+
+                <div class="sd-hero-search">
+                    <form asp-controller="Search" asp-action="Index" method="get" class="sd-search-form">
+                        <div class="sd-search-input-wrap">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input class="sd-search-input"
+                                   type="text"
+                                   name="searchString"
+                                   placeholder="Search restaurants or dishes"
+                                   value="@ViewData["CurrentFilter"]" />
+                        </div>
+
+                        <button type="submit" class="sd-search-button">
+                            Search Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="sd-hero-panel">
+                @if (Model.HasAnyHomeData)
+                {
+                    <div class="sd-hero-panel-title">Why Snack Dash feels better</div>
+
+                    <div class="sd-hero-stats">
+                        <div class="sd-stat">
+                            <div class="sd-stat-number">@Model.FeaturedRestaurantCount</div>
+                            <div class="sd-stat-copy">Featured restaurant options ready to explore.</div>
+                        </div>
+
+                        <div class="sd-stat">
+                            <div class="sd-stat-number">@Model.TopRatedRestaurantCount</div>
+                            <div class="sd-stat-copy">Top-rated picks to help users discover faster.</div>
+                        </div>
+
+                        <div class="sd-stat">
+                            <div class="sd-stat-number">@Model.CategoryCount</div>
+                            <div class="sd-stat-copy">Food categories to make browsing easier and cleaner.</div>
+                        </div>
+
+                        <div class="sd-stat">
+                            <div class="sd-stat-number">24/7</div>
+                            <div class="sd-stat-copy">A product direction built for convenience, usability, and scale.</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="sd-panel-empty">
+                        <div class="sd-hero-panel-title">Snack Dash is ready for content</div>
+                        <p class="sd-panel-empty-copy">
+                            The new homepage styling is working properly. The reason the sections look empty
+                            is that there are currently no categories or restaurants available in the database yet.
+                        </p>
+
+                        <div class="sd-panel-actions">
+                            @if (isAdmin)
+                            {
+                                <a asp-controller="Restaurant" asp-action="Create" class="sd-panel-btn primary">
+                                    <i class="fa-solid fa-store"></i>
+                                    Add First Restaurant
+                                </a>
+                            }
+
+                            <a asp-controller="Search" asp-action="Index" class="sd-panel-btn secondary">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                Browse Search Page
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (Model.HasCategories)
+    {
+        <section class="sd-section">
+            <div class="sd-section-head">
+                <div>
+                    <span class="sd-section-kicker">Categories</span>
+                    <h2 class="sd-section-title">Start with what you’re in the mood for</h2>
+                    <p class="sd-section-copy">
+                        Explore food categories quickly and jump straight into the kinds of meals you actually want.
+                    </p>
+                </div>
+            </div>
+
+            <div class="sd-category-row">
+                @foreach (var category in Model.Categories)
+                {
+                    <a asp-controller="Search"
+                       asp-action="Index"
+                       asp-route-searchString="@category.Name"
+                       class="sd-category-card">
+                        <div class="sd-category-icon">
+                            <img src="@category.ImageUrl" alt="@category.Name" />
+                        </div>
+                        <div class="sd-category-name">@category.Name</div>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="sd-section">
+            <div class="sd-section-head">
+                <div>
+                    <span class="sd-section-kicker">Categories</span>
+                    <h2 class="sd-section-title">Start with what you’re in the mood for</h2>
+                    <p class="sd-section-copy">
+                        Explore food categories quickly and jump straight into the kinds of meals you actually want.
+                    </p>
+                </div>
+            </div>
+
+            <div class="sd-empty compact">
+                No categories are available yet.
+                @if (isAdmin)
+                {
+                    <div class="sd-empty-actions">
+                        <a asp-controller="Search" asp-action="Index" class="sd-empty-btn">
+                            <i class="fa-solid fa-eye"></i>
+                            View search anyway
+                        </a>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="sd-section">
+        <div class="sd-section-head">
+            <div>
+                <span class="sd-section-kicker">Featured Picks</span>
+                <h2 class="sd-section-title">Featured restaurants worth checking out</h2>
+                <p class="sd-section-copy">
+                    Handpicked restaurant listings presented in a cleaner, more visual card layout for faster discovery.
+                </p>
+            </div>
+
+            @if (Model.HasFeaturedRestaurants)
+            {
+                <a asp-controller="Search" asp-action="Index" class="sd-link-chip">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    Explore more
+                </a>
+            }
+        </div>
+
+        @if (Model.HasFeaturedRestaurants)
         {
-            <div class="category-item">
-                <img src="@category.ImageUrl" alt="@category.Name" />
-                <p>@category.Name</p>
+            <div class="sd-restaurant-grid">
+                @foreach (var restaurant in Model.FeaturedRestaurants)
+                {
+                    <a asp-controller="Restaurant"
+                       asp-action="Details"
+                       asp-route-id="@restaurant.RestaurantId"
+                       class="sd-restaurant-card">
+                        <div class="sd-restaurant-media">
+                            <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
+                            <span class="sd-restaurant-badge">
+                                <i class="fa-solid fa-fire"></i>
+                                Featured
+                            </span>
+                        </div>
+
+                        <div class="sd-card-body">
+                            <div class="sd-card-title">@restaurant.Name</div>
+                            <div class="sd-card-copy">@restaurant.Description</div>
+
+                            <div class="sd-card-footer">
+                                <span class="sd-card-chip">
+                                    <i class="fa-solid fa-utensils"></i>
+                                    Fresh picks
+                                </span>
+
+                                <span class="sd-card-cta">
+                                    View menu <i class="fa-solid fa-arrow-right-long"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                }
             </div>
         }
-    </div>
+        else
+        {
+            <div class="sd-empty">
+                No featured restaurants are available yet.
+                @if (isAdmin)
+                {
+                    <div class="sd-empty-actions">
+                        <a asp-controller="Restaurant" asp-action="Create" class="sd-empty-btn">
+                            <i class="fa-solid fa-plus"></i>
+                            Add restaurant
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </section>
 
-    <!-- Featured Restaurants Section -->
-    <div class="restaurant-row">
-        <div class="row-header">
-            <h2>Featured Restaurants</h2>
-            <a href="#">See all</a>
-        </div>
-        <div class="restaurant-list">
-            @foreach (var restaurant in Model.FeaturedRestaurants)
+    <section class="sd-section">
+        <div class="sd-section-head">
+            <div>
+                <span class="sd-section-kicker">Top Rated</span>
+                <h2 class="sd-section-title">Popular choices customers would notice first</h2>
+                <p class="sd-section-copy">
+                    Highlight stronger restaurant options in a way that supports a more polished browsing experience.
+                </p>
+            </div>
+
+            @if (Model.HasTopRatedRestaurants)
             {
-                <!-- UPDATED LINK HERE -->
-                <a asp-controller="Restaurant" asp-action="Details" asp-route-id="@restaurant.RestaurantId" class="restaurant-card">
-                    <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
-                    <div class="card-body">
-                        <h5>@restaurant.Name</h5>
-                        <p>@restaurant.Description</p>
-                    </div>
+                <a asp-controller="Search" asp-action="Index" class="sd-link-chip">
+                    <i class="fa-solid fa-star"></i>
+                    See all options
                 </a>
             }
         </div>
-    </div>
-    
-    <!-- Top Rated Restaurants Section -->
-    <div class="restaurant-row">
-        <div class="row-header">
-            <h2>Top Rated</h2>
-            <a href="#">See all</a>
-        </div>
-        <div class="restaurant-list">
-            @foreach (var restaurant in Model.TopRatedRestaurants)
-            {
-                <!-- UPDATED LINK HERE -->
-                <a asp-controller="Restaurant" asp-action="Details" asp-route-id="@restaurant.RestaurantId" class="restaurant-card">
-                    <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
-                    <div class="card-body">
-                        <h5>@restaurant.Name</h5>
-                        <p>@restaurant.Description</p>
+
+        @if (Model.HasTopRatedRestaurants)
+        {
+            <div class="sd-restaurant-grid">
+                @foreach (var restaurant in Model.TopRatedRestaurants)
+                {
+                    <a asp-controller="Restaurant"
+                       asp-action="Details"
+                       asp-route-id="@restaurant.RestaurantId"
+                       class="sd-restaurant-card">
+                        <div class="sd-restaurant-media">
+                            <img src="@restaurant.LogoUrl" alt="@restaurant.Name" />
+                            <span class="sd-restaurant-badge">
+                                <i class="fa-solid fa-star"></i>
+                                Top Rated
+                            </span>
+                        </div>
+
+                        <div class="sd-card-body">
+                            <div class="sd-card-title">@restaurant.Name</div>
+                            <div class="sd-card-copy">@restaurant.Description</div>
+
+                            <div class="sd-card-footer">
+                                <span class="sd-card-chip">
+                                    <i class="fa-solid fa-thumbs-up"></i>
+                                    Customer favourite
+                                </span>
+
+                                <span class="sd-card-cta">
+                                    View details <i class="fa-solid fa-arrow-right-long"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sd-empty">
+                No top-rated restaurants are available yet.
+                @if (isAdmin)
+                {
+                    <div class="sd-empty-actions">
+                        <a asp-controller="Restaurant" asp-action="Create" class="sd-empty-btn">
+                            <i class="fa-solid fa-plus"></i>
+                            Add restaurant
+                        </a>
                     </div>
-                </a>
-            }
-        </div>
-    </div>
+                }
+            </div>
+        }
+    </section>
 </div>
-
-@* Add Font Awesome for icons *@
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>

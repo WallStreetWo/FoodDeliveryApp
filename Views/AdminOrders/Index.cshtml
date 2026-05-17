@@ -1,0 +1,187 @@
+@model List<FoodDeliveryApp.Models.Order>
+
+@{
+    ViewData["Title"] = "Manage Orders";
+    var statuses = ViewBag.AllowedStatuses as string[] ?? Array.Empty<string>();
+    string currentStatus = ViewBag.CurrentStatus ?? "";
+    string currentSearch = ViewBag.Search ?? "";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="mb-2">Manage Orders</h1>
+            <p class="text-muted mb-0">Track incoming customer orders and update delivery progress.</p>
+        </div>
+    </div>
+
+    @if (TempData["AdminOrderSuccess"] != null)
+    {
+        <div class="alert alert-success">@TempData["AdminOrderSuccess"]</div>
+    }
+
+    @if (TempData["AdminOrderError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["AdminOrderError"]</div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Total Orders</div>
+                    <div class="fs-3 fw-bold">@ViewBag.TotalOrders</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Pending</div>
+                    <div class="fs-3 fw-bold">@ViewBag.PendingOrders</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Preparing</div>
+                    <div class="fs-3 fw-bold">@ViewBag.PreparingOrders</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Out for Delivery</div>
+                    <div class="fs-3 fw-bold">@ViewBag.OutForDeliveryOrders</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+                <option value="">All</option>
+                @foreach (var s in statuses)
+                {
+                    <option value="@s" selected="@(currentStatus == s ? "selected" : null)">@s</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Search</label>
+            <input type="text" name="search" value="@currentSearch" class="form-control"
+                   placeholder="Search by order number, customer, email, or restaurant" />
+        </div>
+
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-dark">Apply</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </form>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">No orders found.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Restaurant</th>
+                        <th>Driver</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Placed</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        var badgeClass = order.Status switch
+                        {
+                            "Order placed" => "bg-warning text-dark",
+                            "Restaurant accepted" => "bg-info text-dark",
+                            "Preparing food" => "bg-primary",
+                            "Driver assigned" => "bg-secondary",
+                            "Picked up" => "bg-dark",
+                            "On the way" => "bg-dark",
+                            "Delivered" => "bg-success",
+                            "Cancelled" => "bg-danger",
+                            _ => "bg-secondary"
+                        };
+
+                        <tr>
+                            <td>
+                                <strong>#@order.OrderId</strong>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@(order.User?.FullName ?? "Customer")</div>
+                                <div class="small text-muted">@(order.User?.Email ?? "")</div>
+                            </td>
+                            <td>@(order.Restaurant?.Name ?? "Unknown Restaurant")</td>
+
+                            <td>
+                                <div class="text-muted">
+                                    @if (order.Driver != null)
+                                    {
+                                        <span>@(order.Driver.FullName ?? order.Driver.Email)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Not assigned</span>
+                                    }
+                                </div>
+                            </td>
+
+                            <td>
+                                @string.Join(", ", order.OrderItems.Select(i => $"{i.MenuItem?.Name} x{i.Quantity}"))
+                            </td>
+                            <td>R @order.TotalAmount.ToString("F2")</td>
+                            <td>
+                                <span class="badge @badgeClass">@order.Status</span>
+                            </td>
+                            <td>@order.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                    <a asp-action="Details" asp-route-id="@order.OrderId" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+
+                                    <form asp-action="UpdateStatus" method="post" class="d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@order.OrderId" />
+                                        <input type="hidden" name="returnStatus" value="@currentStatus" />
+                                        <input type="hidden" name="search" value="@currentSearch" />
+
+                                        <select name="status" class="form-select form-select-sm">
+                                            @foreach (var s in statuses)
+                                            {
+                                                <option value="@s" selected="@(order.Status == s ? "selected" : null)">@s</option>
+                                            }
+                                        </select>
+
+                                        <button type="submit" class="btn btn-sm btn-dark">Update</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

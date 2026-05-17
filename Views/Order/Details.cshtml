@@ -1,0 +1,57 @@
+@model FoodDeliveryApp.Models.Order
+
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<div class="container py-4">
+    <h1 class="mb-3">Order #@Model.OrderId</h1>
+    <p class="text-muted mb-4">Detailed view of your submitted order.</p>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div><strong>Status:</strong> @Model.Status</div>
+                    <div><strong>Order Date:</strong> @Model.OrderDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                    <div><strong>Total:</strong> R @Model.TotalAmount.ToString("F2")</div>
+                </div>
+                <div class="col-md-6">
+                    <div><strong>Restaurant ID:</strong> @Model.RestaurantId</div>
+                    <div><strong>User ID:</strong> @Model.UserId</div>
+                </div>
+            </div>
+
+            <h4 class="mb-3">Order Items</h4>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.OrderItems)
+                        {
+                            <tr>
+                                <td>@item.MenuItem?.Name</td>
+                                <td>@item.Quantity</td>
+                                <td>R @item.UnitPrice.ToString("F2")</td>
+                                <td>R @((item.Quantity * item.UnitPrice).ToString("F2"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 d-flex gap-2 flex-wrap">
+                <a asp-controller="Order" asp-action="Index" class="btn btn-primary">Back to My Orders</a>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
